@@ -14,6 +14,8 @@
     --soft: #f4f6fa;
     --brand: #2f6bff;
     --brand-soft: #eaf0ff;
+    --icon: #4a5568;
+    --veil: rgba(255, 255, 255, .95);
     --rail: 56px;
     --dark: #232936;
   }
@@ -66,7 +68,7 @@
     width: 40px; height: 40px; flex: 0 0 auto;
     display: flex; align-items: center; justify-content: center;
     border: 0; border-radius: 11px; background: transparent;
-    color: #4a5568; cursor: pointer;
+    color: var(--icon); cursor: pointer;
     transition: background .14s, color .14s, transform .08s;
   }
   .rbtn:hover { background: var(--soft); color: var(--ink); }
@@ -78,7 +80,7 @@
   .rbtn .dot {
     position: absolute; right: 7px; bottom: 6px;
     width: 9px; height: 9px; border-radius: 50%;
-    border: 1.5px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.08);
+    border: 1.5px solid var(--paper); box-shadow: 0 0 0 1px rgba(0,0,0,.08);
   }
   .rsep { width: 24px; height: 1px; background: var(--line); margin: 5px 0; flex: 0 0 auto; }
   .spacer { flex: 1 1 auto; min-height: 4px; }
@@ -92,6 +94,126 @@
     transition: opacity .16s, transform .16s;
   }
   .pop.show { display: block; opacity: 1; transform: translateX(0); }
+
+  /* ================= 黑白板切换开关 ================= */
+  #themePop { width: 208px; }
+  .switch {
+    position: relative; height: 36px; border-radius: 999px; cursor: pointer;
+    background: var(--soft); border: 1px solid var(--line); overflow: hidden;
+    -webkit-user-select: none; user-select: none;
+  }
+  .switch .knob {
+    position: absolute; top: 3px; left: 3px; width: calc(50% - 3px); height: 28px;
+    border-radius: 999px; background: var(--brand);
+    box-shadow: 0 2px 8px rgba(47,107,255,.35);
+    transition: transform .24s cubic-bezier(.22,.8,.24,1);
+  }
+  .switch.on .knob { transform: translateX(100%); }
+  .switch .lab {
+    position: absolute; top: 0; width: 50%; height: 100%; z-index: 1;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; color: var(--muted); transition: color .18s;
+  }
+  .switch .lab.l { left: 0; }
+  .switch .lab.r { right: 0; }
+  .switch .lab.on { color: #fff; font-weight: 600; }
+
+  /* ================= 滚动位置提示 ================= */
+  /* 常驻在左下角：缩放条 bottom:14 高约 38，页码提示 bottom:58，这里再往上推 */
+  #scrollHud {
+    position: fixed; left: 14px; bottom: 92px; z-index: 45;
+    display: flex; align-items: baseline; gap: 6px;
+    padding: 6px 11px; border-radius: 9px;
+    background: rgba(24, 30, 42, .82); color: #fff;
+    font-size: 11.5px; letter-spacing: .2px;
+    font-variant-numeric: tabular-nums;
+    opacity: 0; pointer-events: none; transition: opacity .22s;
+  }
+  #scrollHud.show { opacity: 1; }
+  #scrollHud b { color: #ffd166; font-weight: 600; }
+  #scrollHud span { color: #cfd6e4; }
+  #scrollHud .edge { color: #ff9f6e; font-weight: 600; display: none; }
+  #scrollHud .edge.on { display: inline; }
+
+  /* ================= 首次启动选语言 ================= */
+  #langWrap {
+    position: fixed; inset: 0; z-index: 90; display: none;
+    align-items: center; justify-content: center;
+    background: rgba(10, 14, 20, .55);
+    backdrop-filter: blur(2px);
+  }
+  #langWrap.show { display: flex; }
+  #langCard {
+    width: 400px; padding: 26px 26px 22px; border-radius: 18px;
+    background: #ffffff; color: #1f2937; text-align: center;
+    border: 1px solid #e8ecf3; box-shadow: 0 30px 70px rgba(12, 18, 30, .35);
+    animation: langIn .26s cubic-bezier(.22,.8,.24,1);
+  }
+  @keyframes langIn { from { opacity: 0; transform: translateY(10px) scale(.98); } }
+  #langCard .lmark {
+    width: 44px; height: 44px; margin: 0 auto 10px; border-radius: 13px;
+    display: flex; align-items: center; justify-content: center;
+    background: #2f6bff; box-shadow: 0 8px 20px rgba(47,107,255,.35);
+  }
+  #langCard .lmark svg { width: 24px; height: 24px; stroke: #fff; fill: none;
+    stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  #langCard .lbrand { font-size: 12px; letter-spacing: 1.2px; color: #8b95a5;
+    text-transform: uppercase; margin-bottom: 12px; }
+  #langCard h3 { margin: 0 0 8px; font-size: 19px; letter-spacing: -.2px; }
+  #langCard p { margin: 0 0 20px; font-size: 12.5px; line-height: 1.7; color: #6b7280; }
+  #langCard .lbtns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  #langCard .lbtns button {
+    padding: 12px 8px; border-radius: 12px; cursor: pointer;
+    border: 1px solid #e2e8f0; background: #f8fafc; color: #1f2937;
+    display: flex; flex-direction: column; gap: 3px; align-items: center;
+    transition: border-color .16s, background .16s, transform .16s;
+  }
+  #langCard .lbtns button:hover { border-color: #2f6bff; background: #eff4ff;
+    transform: translateY(-1px); }
+  #langCard .lbtns b { font-size: 14px; font-weight: 600; }
+  #langCard .lbtns i { font-size: 10.5px; font-style: normal; color: #94a3b8; }
+
+  /* 文件弹窗里的语言切换 */
+  .langrow {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--line);
+    font-size: 12px; color: var(--muted);
+  }
+  .langchips { display: flex; gap: 4px; }
+  .langchips button {
+    height: 24px; padding: 0 10px; border-radius: 7px; cursor: pointer;
+    border: 1px solid var(--line); background: var(--soft);
+    color: var(--muted); font-size: 11.5px;
+  }
+  .langchips button.on { background: var(--brand); border-color: var(--brand); color: #fff; }
+
+  /* ================= 启动更新提示 ================= */
+  #updateWrap {
+    position: fixed; inset: 0; z-index: 60; display: none;
+    align-items: center; justify-content: center;
+    background: rgba(12, 16, 24, .38);
+  }
+  #updateWrap.show { display: flex; }
+  #updateCard {
+    width: 420px; padding: 22px 22px 18px; border-radius: 16px;
+    background: var(--paper); border: 1px solid var(--line);
+    box-shadow: 0 24px 60px rgba(16, 24, 40, .28);
+  }
+  #updateCard h4 { margin: 0 0 6px; font-size: 15px; }
+  #updateCard .uver { color: var(--muted); font-size: 12px; margin-bottom: 12px; }
+  #updateCard .ulinks { margin-top: 14px; display: flex; flex-direction: column; gap: 6px; }
+  #updateCard .ulinks a {
+    color: #2f6bff; font-size: 12px; text-decoration: underline; cursor: pointer;
+    text-underline-offset: 2px;
+  }
+  #updateCard .ulinks a:hover { color: #1e57e0; }
+  #updateCard .uacts { margin-top: 16px; display: flex; justify-content: flex-end; gap: 8px; }
+  #updateCard button {
+    height: 34px; padding: 0 16px; border-radius: 9px; border: 1px solid var(--line);
+    background: var(--soft); color: var(--ink); font-size: 12px; cursor: pointer;
+  }
+  #updateCard button.primary { background: var(--brand); border-color: var(--brand); color: #fff; }
+  #updateNote { margin-top: 10px; font-size: 12px; color: var(--muted); min-height: 16px; }
 
   .pop.light { background: var(--paper); border: 1px solid var(--line); padding: 12px; }
   .pop.dark { background: var(--dark); color: #e8edf6; padding: 0; overflow: hidden; width: 316px; }
@@ -214,7 +336,7 @@
   body.collapsed .zoomdock { left: auto; right: 14px; }
   .zoomdock button {
     width: 30px; height: 30px; border: 0; border-radius: 8px; background: transparent;
-    color: #4a5568; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    color: var(--icon); cursor: pointer; display: flex; align-items: center; justify-content: center;
   }
   .zoomdock button:hover { background: var(--soft); color: var(--ink); }
   .zoomdock svg { width: 16px; height: 16px; stroke: currentColor; fill: none;
@@ -243,6 +365,22 @@
                 stroke-width: 1.8; stroke-linecap: round; }
   body.collapsed #expand { display: flex; }
 
+  /* 右上角的语言切换：常驻可见，点一下中英互换 */
+  #langBtn {
+    position: fixed; top: 12px; right: calc(var(--rail) + 12px); z-index: 32;
+    display: flex; align-items: center; gap: 3px;
+    height: 30px; padding: 0 10px; border-radius: 9px; cursor: pointer;
+    border: 1px solid var(--line); background: var(--paper); color: var(--muted);
+    font-size: 11.5px; font-weight: 600; letter-spacing: .2px;
+    box-shadow: 0 4px 14px rgba(23, 34, 59, .08);
+    transition: color .16s, border-color .16s;
+  }
+  #langBtn:hover { border-color: var(--brand); }
+  #langBtn span { padding: 1px 2px; border-radius: 4px; transition: color .16s, background .16s; }
+  #langBtn span.on { color: var(--brand); background: var(--brand-soft); }
+  #langBtn i { font-style: normal; color: var(--line); }
+  body.collapsed #langBtn { right: 56px; }
+
   #textInput {
     position: fixed; display: none; z-index: 36; min-width: 100px;
     padding: 1px 3px; border: 1px dashed var(--brand); border-radius: 5px;
@@ -264,7 +402,7 @@
   #welcome {
     position: fixed; inset: 0; right: var(--rail); z-index: 25;
     display: flex; align-items: center; justify-content: center;
-    background: rgba(255, 255, 255, .95);
+    background: var(--veil);
   }
   #welcome.hide { display: none; }
   .wcard {
@@ -389,6 +527,9 @@ window.__slow = (what, ms) => {
   <button class="rbtn" id="btnRedo" title="重做 (Ctrl+Shift+Z)">
     <svg viewBox="0 0 24 24"><path d="M15 7l5 5-5 5"/><path d="M20 12H10a5 5 0 000 10h3"/></svg>
   </button>
+  <button class="rbtn" id="btnTheme" title="黑板 / 白板切换">
+    <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="8"/><path d="M12 4v16"/><path d="M12 8a4 4 0 010 8"/></svg>
+  </button>
   <button class="rbtn" id="btnCollapse" title="收起侧边栏 (Tab)">
     <svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>
   </button>
@@ -396,6 +537,11 @@ window.__slow = (what, ms) => {
 
 <button id="expand" title="展开侧边栏">
   <svg viewBox="0 0 24 24"><path d="M15 6l-6 6 6 6"/></svg>
+</button>
+
+<!-- 语言切换：中 / EN，随时点，记住选择 -->
+<button id="langBtn" title="语言 / Language">
+  <span data-lang-btn="zh">中</span><i>/</i><span data-lang-btn="en">EN</span>
 </button>
 
 <!-- ============ 笔设置浮窗（深色） ============ -->
@@ -410,14 +556,14 @@ window.__slow = (what, ms) => {
     <div class="pen-colors" id="penColors"></div>
   </div>
   <div class="pen-foot">
-    <span>自定义颜色</span>
+    <span id="customColorLab">自定义颜色</span>
     <input type="color" id="colorPicker" value="#1f2937">
   </div>
 </div>
 
 <!-- ============ 形状浮窗 ============ -->
 <div class="pop light" id="shapePop">
-  <h5>形状</h5>
+  <h5 id="shapeTitle">形状</h5>
   <div class="shape-grid">
     <button class="rbtn" data-tool="line" title="直线 (L)"><svg viewBox="0 0 24 24"><path d="M5 19L19 5"/></svg></button>
     <button class="rbtn" data-tool="arrow" title="箭头 (A)"><svg viewBox="0 0 24 24"><path d="M5 19L19 5"/><path d="M13 5h6v6"/></svg></button>
@@ -426,9 +572,42 @@ window.__slow = (what, ms) => {
   </div>
 </div>
 
+<!-- ============ 黑白板切换浮窗 ============ -->
+<div class="pop light" id="themePop">
+  <h5 id="themeTitle">纸张</h5>
+  <div class="switch" id="themeSwitch">
+    <div class="knob"></div>
+    <div class="lab l on" data-theme="white">白板</div>
+    <div class="lab r" data-theme="black">黑板</div>
+  </div>
+</div>
+
+<!-- ============ 滚动位置提示 ============ -->
+<div id="scrollHud">
+  <span class="edge" id="scrollEdge"></span>
+  <span id="scrollLab">当前白板位置</span><b id="scrollPos">0.0</b><span>/ 50.0</span>
+</div>
+
+<!-- ============ 启动更新提示 ============ -->
+<div id="updateWrap">
+  <div id="updateCard">
+    <h4 id="updateTitle">发现新版本</h4>
+    <div class="uver" id="updateVer"></div>
+    <div id="updateNote"></div>
+    <div class="ulinks">
+      <a id="lnkManual">无法安装？点此跳转手动下载</a>
+      <a id="lnkInstaller">手动安装失败？无法访问？点击下载自研安装器安装</a>
+    </div>
+    <div class="uacts">
+      <button id="updateLater">以后再说</button>
+      <button id="updateNow" class="primary">立即更新</button>
+    </div>
+  </div>
+</div>
+
 <!-- ============ 页面浮窗 ============ -->
 <div class="pop light" id="pagePop">
-  <h5>页面</h5>
+  <h5 id="pageTitle">页面</h5>
   <div class="pgrid" id="pgrid"></div>
   <div class="prow">
     <button id="btnAddPage"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>新建</button>
@@ -439,12 +618,19 @@ window.__slow = (what, ms) => {
 
 <!-- ============ 文件浮窗 ============ -->
 <div class="pop light" id="filePop">
-  <h5>文件</h5>
+  <h5 id="fileTitle">文件</h5>
   <div class="fgrid">
     <button class="fbtn primary" id="btnPng"><svg viewBox="0 0 24 24"><path d="M12 4v11"/><path d="M8 11l4 4 4-4"/><path d="M5 19h14"/></svg>导出图片</button>
     <button class="fbtn" id="btnSave"><svg viewBox="0 0 24 24"><path d="M5 4h11l3 3v13H5z"/><path d="M9 4v5h6V4"/></svg>保存</button>
     <button class="fbtn" id="btnOpen"><svg viewBox="0 0 24 24"><path d="M4 7h6l2 2h8v9H4z"/></svg>打开</button>
     <button class="fbtn danger" id="btnClear"><svg viewBox="0 0 24 24"><path d="M5 7h14"/><path d="M9 7V5h6v2"/><path d="M7 7l1 12h8l1-12"/></svg>清空</button>
+  </div>
+  <div class="langrow">
+    <span id="langLab">语言</span>
+    <div class="langchips">
+      <button data-setlang="zh">中文</button>
+      <button data-setlang="en">English</button>
+    </div>
   </div>
 </div>
 
@@ -489,10 +675,26 @@ window.__slow = (what, ms) => {
     <div class="logo">
       <svg viewBox="0 0 24 24"><path d="M4 16c3-6 5 2 8-2s5 1 8-4"/></svg>
     </div>
-    <div class="brand">CleanBlackboard · 简黑板</div>
-    <h1>开始你的第一笔</h1>
-    <p>右边是工具栏，点画笔再点一次可以换颜色。<br>滚轮平移、Ctrl + 滚轮缩放，图片直接拖进来。</p>
+    <div class="brand" id="welcomeBrand">CleanBlackboard · 简黑板</div>
+    <h1 id="welcomeTitle">开始你的第一笔</h1>
+    <p id="welcomeText">右边是工具栏，点画笔再点一次可以换颜色。<br>滚轮平移、Ctrl + 滚轮缩放，图片直接拖进来。</p>
     <button id="btnStart">开始写字</button>
+  </div>
+</div>
+
+<!-- ============ 首次启动：选语言 ============ -->
+<div id="langWrap">
+  <div id="langCard">
+    <div class="lmark">
+      <svg viewBox="0 0 24 24"><path d="M4 16c3-6 5 2 8-2s5 1 8-4"/></svg>
+    </div>
+    <div class="lbrand">CleanBlackboard</div>
+    <h3>Choose your language</h3>
+    <p>Pick the language you want to use.<br>You can change it any time in the File menu.</p>
+    <div class="lbtns">
+      <button data-lang="zh"><b>简体中文</b><i>Chinese (Simplified)</i></button>
+      <button data-lang="en"><b>English</b><i>English</i></button>
+    </div>
   </div>
 </div>
 
@@ -516,6 +718,299 @@ const NativeReady = new Promise((resolve) => {
 });
 
 /* =========================================================
+   0.5 界面语言
+   ---------------------------------------------------------
+   首次启动弹一次英文选框，选完记在 localStorage。
+   词条集中在这里，别在别处硬写中文，否则切英文会漏。
+   ========================================================= */
+const LANG_KEY = 'Language';   // 语言选择存这里，下次进来直接用
+let lang = 'zh';
+
+const I18N = {
+  zh: {
+    'tip.pen': '画笔 (P) · 再点一次换颜色',
+    'tip.eraser': '橡皮 · 整笔擦除 (E)',
+    'tip.select': '选择 / 框选 (V)',
+    'tip.shapes': '形状',
+    'tip.text': '文字 (T)',
+    'tip.image': '插入图片（也可直接拖进来）',
+    'tip.board': '插入小黑板',
+    'tip.pages': '页面',
+    'tip.files': '文件 · 导入导出',
+    'tip.undo': '撤销 (Ctrl+Z)',
+    'tip.redo': '重做 (Ctrl+Shift+Z)',
+    'tip.theme': '黑板 / 白板切换',
+    'tip.collapse': '收起侧边栏 (Tab)',
+    'tip.expand': '展开侧边栏',
+    'tip.line': '直线 (L)',
+    'tip.arrow': '箭头 (A)',
+    'tip.rect': '矩形 (R)',
+    'tip.ellipse': '圆形 (O)',
+    'tip.zoomOut': '缩小 (-)',
+    'tip.zoomIn': '放大 (+)',
+    'tip.zoomReset': '点击回到 100%',
+    'tip.full': '全屏 (F)',
+    'tip.top': '置顶',
+    'tip.clone': '克隆 (Ctrl+D)',
+    'tip.lock': '锁定 / 解锁',
+    'tip.fontDown': '字号减小',
+    'tip.fontUp': '字号增大',
+    'tip.color': '改颜色',
+    'tip.del': '删除 (Del)',
+
+    'ui.new': '新建', 'ui.dup': '复制', 'ui.del': '删除',
+    'ui.png': '导出图片', 'ui.save': '保存', 'ui.open': '打开', 'ui.clear': '清空',
+    'ui.front': '置顶', 'ui.clone': '克隆', 'ui.lock': '锁定',
+    'ui.size': '字号', 'ui.color': '颜色',
+    'ui.start': '开始写字',
+    'ui.shapeTitle': '形状', 'ui.themeTitle': '纸张',
+    'ui.pageTitle': '页面', 'ui.fileTitle': '文件',
+    'ui.pen': '笔', 'ui.marker': '荧光笔', 'ui.brush': '书法笔',
+    'ui.customColor': '自定义颜色',
+    'ui.paperWhite': '白板', 'ui.paperBlack': '黑板',
+    'ui.lang': '语言',
+    'ui.dropzone': '松手即可插入图片',
+
+    'welcome.title': '开始你的第一笔',
+    'welcome.text': '右边是工具栏，点画笔再点一次可以换颜色。<br>滚轮平移、Ctrl + 滚轮缩放，图片直接拖进来。',
+
+    'hud.pos': '当前白板位置', 'hud.top': '已达到顶端', 'hud.bottom': '已达底端',
+
+    'up.title': '发现新版本 {v}',
+    'up.desc': '当前版本 {c} → 最新版本 {l}',
+    'up.date': '（发布于 {d}）',
+    'up.later': '以后再说', 'up.now': '立即更新',
+    'up.manual': '无法安装？点此跳转手动下载',
+    'up.installer': '手动安装失败？无法访问？点击下载自研安装器安装',
+    'up.downloading': '正在下载新版本，请稍候…',
+    'up.done': '已下载到 {p}，关闭本窗口后运行它即可（工程文件不受影响）',
+    'up.fail': '下载失败：{e}，可以点下面的链接手动下载',
+    'up.nonative': '当前不是在桌面版里运行，请用下面的链接手动下载',
+    'up.instDownloading': '正在下载自研安装器 SwiftGet…',
+    'up.instDone': '安装器已下载到 {p}，运行它就能装好新版本',
+    'up.instFail': '下载安装器失败：{e}',
+    'up.instNonative': '当前不是在桌面版里运行，请到项目主页下载安装器',
+
+    't.lockedResize': '选中的对象已锁定，先解锁再缩放',
+    't.lockedDrag': '已锁定：位置钉在纸上，点「解锁」后可拖动',
+    't.selected': '选中 {n} 个对象',
+    't.pageNew': '已新建页面', 't.pageDup': '已复制当前页', 't.pageKeep': '至少要留一页',
+    't.saved': '已保存到 ', 't.saveFail': '保存失败：', 't.openFail': '打开失败：',
+    't.opened': '已打开 ', 't.badFile': '这个文件打不开：',
+    't.empty': '当前页是空的', 't.imgSaved': '图片已保存到 ', 't.imgExported': '图片已导出',
+    't.projOpened': '已打开工程', 't.imgInserted': '图片已插入',
+    't.boardAdded': '小黑板已插入，在上面写字会自动用反色笔',
+    't.onlyImg': '只支持图片文件和 .wbjson 工程',
+    't.themeBlack': '已切到黑板 · 小黑板自动变白板', 't.themeWhite': '已切到白板',
+    't.front': '已置顶', 't.cloned': '已克隆',
+    't.noLockNeed': '文字和涂鸦本来就钉在纸上，不用锁定',
+    't.lockOn': '已锁定：钉在纸上，跟着白板滚动',
+    't.lockOff': '已解锁：固定在屏幕上，不随白板滚动',
+    't.alreadyEmpty': '当前页已经是空的', 't.cleared': '已清空，可以 Ctrl+Z 撤销',
+    't.projectSaved': '已下载工程文件', 't.langSwitched': '已切换成简体中文',
+  },
+  en: {
+    'tip.pen': 'Pen (P) · click again to change color',
+    'tip.eraser': 'Eraser · removes whole strokes (E)',
+    'tip.select': 'Select / marquee (V)',
+    'tip.shapes': 'Shapes',
+    'tip.text': 'Text (T)',
+    'tip.image': 'Insert image (or drop one in)',
+    'tip.board': 'Insert a small board',
+    'tip.pages': 'Pages',
+    'tip.files': 'File · import & export',
+    'tip.undo': 'Undo (Ctrl+Z)',
+    'tip.redo': 'Redo (Ctrl+Shift+Z)',
+    'tip.theme': 'Blackboard / whiteboard',
+    'tip.collapse': 'Hide sidebar (Tab)',
+    'tip.expand': 'Show sidebar',
+    'tip.line': 'Line (L)',
+    'tip.arrow': 'Arrow (A)',
+    'tip.rect': 'Rectangle (R)',
+    'tip.ellipse': 'Ellipse (O)',
+    'tip.zoomOut': 'Zoom out (-)',
+    'tip.zoomIn': 'Zoom in (+)',
+    'tip.zoomReset': 'Click to reset to 100%',
+    'tip.full': 'Fullscreen (F)',
+    'tip.top': 'Bring to front',
+    'tip.clone': 'Clone (Ctrl+D)',
+    'tip.lock': 'Lock / unlock',
+    'tip.fontDown': 'Smaller text',
+    'tip.fontUp': 'Bigger text',
+    'tip.color': 'Change color',
+    'tip.del': 'Delete (Del)',
+
+    'ui.new': 'New', 'ui.dup': 'Duplicate', 'ui.del': 'Delete',
+    'ui.png': 'Export image', 'ui.save': 'Save', 'ui.open': 'Open', 'ui.clear': 'Clear',
+    'ui.front': 'Front', 'ui.clone': 'Clone', 'ui.lock': 'Lock',
+    'ui.size': 'Size', 'ui.color': 'Color',
+    'ui.start': 'Start writing',
+    'ui.shapeTitle': 'Shapes', 'ui.themeTitle': 'Paper',
+    'ui.pageTitle': 'Pages', 'ui.fileTitle': 'File',
+    'ui.pen': 'Pen', 'ui.marker': 'Highlighter', 'ui.brush': 'Brush',
+    'ui.customColor': 'Custom color',
+    'ui.paperWhite': 'White', 'ui.paperBlack': 'Black',
+    'ui.lang': 'Language',
+    'ui.dropzone': 'Drop to insert the image',
+
+    'welcome.title': 'Start your first stroke',
+    'welcome.text': 'The toolbar is on the right — click the pen again to switch color.<br>Scroll to pan, Ctrl + scroll to zoom, or drag an image straight in.',
+
+    'hud.pos': 'Board position', 'hud.top': 'Already at the top', 'hud.bottom': 'Reached the bottom',
+
+    'up.title': 'Version {v} is available',
+    'up.desc': 'You have {c} → latest is {l}',
+    'up.date': ' (released {d})',
+    'up.later': 'Later', 'up.now': 'Update now',
+    'up.manual': "Can't install? Open the download page",
+    'up.installer': 'Still failing? Download our own installer',
+    'up.downloading': 'Downloading the new version, hang on…',
+    'up.done': 'Saved to {p} — quit this window and run it (your projects are untouched)',
+    'up.fail': 'Download failed: {e}. Use the links below instead.',
+    'up.nonative': 'Not running in the desktop build — use the links below',
+    'up.instDownloading': 'Downloading the SwiftGet installer…',
+    'up.instDone': 'Installer saved to {p} — run it to install the new version',
+    'up.instFail': 'Installer download failed: {e}',
+    'up.instNonative': 'Not running in the desktop build — grab the installer from the project page',
+
+    't.lockedResize': 'The selection is locked — unlock it before resizing',
+    't.lockedDrag': 'Locked: pinned to the paper. Unlock it to drag again.',
+    't.selected': 'Selected {n} object(s)',
+    't.pageNew': 'New page added', 't.pageDup': 'Page duplicated', 't.pageKeep': 'Keep at least one page',
+    't.saved': 'Saved to ', 't.saveFail': 'Save failed: ', 't.openFail': 'Open failed: ',
+    't.opened': 'Opened ', 't.badFile': 'Cannot open this file: ',
+    't.empty': 'This page is empty', 't.imgSaved': 'Image saved to ', 't.imgExported': 'Image exported',
+    't.projOpened': 'Project opened', 't.imgInserted': 'Image inserted',
+    't.boardAdded': 'Small board added — ink on it flips to the opposite color',
+    't.onlyImg': 'Only images and .wbjson projects are supported',
+    't.themeBlack': 'Switched to blackboard · the small board turns white',
+    't.themeWhite': 'Switched to whiteboard',
+    't.front': 'Sent to front', 't.cloned': 'Cloned',
+    't.noLockNeed': 'Text and ink are already pinned to the paper',
+    't.lockOn': 'Locked: pinned to the paper, scrolls with it',
+    't.lockOff': 'Unlocked: fixed on screen, does not scroll',
+    't.alreadyEmpty': 'This page is already empty', 't.cleared': 'Cleared — Ctrl+Z to undo',
+    't.projectSaved': 'Project file downloaded', 't.langSwitched': 'Switched to English',
+  },
+};
+
+function T(key, vars) {
+  const pack = I18N[lang] || I18N.zh;
+  let s = pack[key];
+  if (s === undefined) s = I18N.zh[key];
+  if (s === undefined) return key;
+  if (vars) for (const k in vars) s = s.split('{' + k + '}').join(vars[k]);
+  return s;
+}
+
+/* 图标按钮只改最后那个文本节点，别把 svg 一起清了 */
+function setLabel(el, text) {
+  if (!el) return;
+  const nodes = [...el.childNodes];
+  for (let i = nodes.length - 1; i >= 0; i--) {
+    const n = nodes[i];
+    if (n.nodeType === 3 && n.textContent.trim()) { n.textContent = text; return; }
+  }
+  el.appendChild(document.createTextNode(text));
+}
+
+const LANG_TIPS = [
+  ['#btnPen', 'tip.pen'], ['[data-tool="eraser"]', 'tip.eraser'],
+  ['[data-tool="select"]', 'tip.select'], ['#btnShapes', 'tip.shapes'],
+  ['[data-tool="text"]', 'tip.text'], ['#btnImage', 'tip.image'],
+  ['#btnBoard', 'tip.board'], ['#btnPages', 'tip.pages'],
+  ['#btnFiles', 'tip.files'], ['#btnUndo', 'tip.undo'], ['#btnRedo', 'tip.redo'],
+  ['#btnTheme', 'tip.theme'], ['#btnCollapse', 'tip.collapse'], ['#expand', 'tip.expand'],
+  ['[data-tool="line"]', 'tip.line'], ['[data-tool="arrow"]', 'tip.arrow'],
+  ['[data-tool="rect"]', 'tip.rect'], ['[data-tool="ellipse"]', 'tip.ellipse'],
+  ['#btnZoomOut', 'tip.zoomOut'], ['#btnZoomIn', 'tip.zoomIn'],
+  ['#zoomLabel', 'tip.zoomReset'], ['#btnFull', 'tip.full'],
+  ['#sbTop', 'tip.top'], ['#sbClone', 'tip.clone'], ['#sbLock', 'tip.lock'],
+  ['#sbFontDown', 'tip.fontDown'], ['#sbFontUp', 'tip.fontUp'],
+  ['#sbColor', 'tip.color'], ['#sbDel', 'tip.del'],
+];
+
+const LANG_LABELS = [
+  ['#btnStart', 'ui.start'],
+  ['#btnAddPage', 'ui.new'], ['#btnDupPage', 'ui.dup'], ['#btnDelPage', 'ui.del'],
+  ['#btnPng', 'ui.png'], ['#btnSave', 'ui.save'], ['#btnOpen', 'ui.open'], ['#btnClear', 'ui.clear'],
+  ['#sbTop', 'ui.front'], ['#sbClone', 'ui.clone'], ['#sbLock', 'ui.lock'],
+  ['#sbFontDown', 'ui.size'], ['#sbFontUp', 'ui.size'], ['#sbColor', 'ui.color'],
+  ['#sbDel', 'ui.del'],
+];
+
+function applyLang() {
+  document.documentElement.lang = lang === 'en' ? 'en' : 'zh-CN';
+  document.body.classList.toggle('lang-en', lang === 'en');
+
+  for (const [sel, key] of LANG_TIPS) {
+    const el = document.querySelector(sel);
+    if (el) el.title = T(key);
+  }
+  for (const [sel, key] of LANG_LABELS) setLabel(document.querySelector(sel), T(key));
+
+  const txt = (id, key, html) => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    if (html) el.innerHTML = T(key); else el.textContent = T(key);
+  };
+  txt('shapeTitle', 'ui.shapeTitle');
+  txt('themeTitle', 'ui.themeTitle');
+  txt('pageTitle', 'ui.pageTitle');
+  txt('fileTitle', 'ui.fileTitle');
+  txt('customColorLab', 'ui.customColor');
+  txt('langLab', 'ui.lang');
+  txt('welcomeTitle', 'welcome.title');
+  txt('welcomeText', 'welcome.text', true);
+  txt('dropzone', 'ui.dropzone');
+  const penNames = { pen: 'ui.pen', marker: 'ui.marker', brush: 'ui.brush' };
+  document.querySelectorAll('[data-pen]').forEach((b) => {
+    b.textContent = T(penNames[b.dataset.pen] || 'ui.pen');
+  });
+  const paperNames = { white: 'ui.paperWhite', black: 'ui.paperBlack' };
+  document.querySelectorAll('#themeSwitch .lab').forEach((l) => {
+    l.textContent = T(paperNames[l.dataset.theme] || 'ui.paperWhite');
+  });
+  const upd = { updateLater: 'up.later', updateNow: 'up.now', lnkManual: 'up.manual', lnkInstaller: 'up.installer' };
+  for (const id in upd) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = T(upd[id]);
+  }
+  document.querySelectorAll('[data-setlang]').forEach((b) => {
+    b.classList.toggle('on', b.dataset.setlang === lang);
+  });
+  // 右上角那个「中 / EN」也跟着高亮
+  document.querySelectorAll('[data-lang-btn]').forEach((b) => {
+    b.classList.toggle('on', b.dataset.langBtn === lang);
+  });
+  showScrollHud(null);   // 把位置数字用新语言重画一遍
+}
+
+function setLang(name, opts = {}) {
+  lang = name === 'en' ? 'en' : 'zh';
+  try { localStorage.setItem(LANG_KEY, lang); } catch (e) {}
+  applyLang();
+  if (opts.toast) toast(T(opts.toast));
+}
+
+/* 首次启动才问，选过就不再打扰 */
+function askLangOnce() {
+  let saved = null;
+  try { saved = localStorage.getItem(LANG_KEY); } catch (e) {}
+  if (saved === 'zh' || saved === 'en') { lang = saved; applyLang(); return; }
+  const wrap = document.getElementById('langWrap');
+  if (!wrap) { applyLang(); return; }
+  wrap.classList.add('show');
+  wrap.querySelectorAll('[data-lang]').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      wrap.classList.remove('show');
+      setLang(btn.dataset.lang, { toast: btn.dataset.lang === 'en' ? 't.langSwitched' : 't.langSwitched' });
+    });
+  });
+}
+
+
+/* =========================================================
    1. 常量与状态
    ========================================================= */
 const COLORS = ['#ffffff', '#ef4444', '#f59e0b', '#22c55e',
@@ -537,6 +1032,7 @@ const state = {
   panning: null,
   spaceDown: false,
   dirty: false,
+  theme: 'white',          // white 白板 / black 黑板
 };
 
 const canvas = document.getElementById('board');
@@ -553,6 +1049,183 @@ const uid = () => Math.random().toString(36).slice(2, 10);
 const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
 const page = () => state.pages[state.current];
 const objects = () => page().objects;
+
+/* =========================================================
+   1.1 纸张主题 / 滚动范围 / 浮动对象
+   ========================================================= */
+
+/* 两套配色。小黑板永远用纸张的反色，这样两种模式下都看得清。 */
+const PAPER = {
+  white: { paper: '#ffffff', ink: '#1f2937', muted: '#8b95a5', line: '#e8ecf3',
+           soft: '#f4f6fa', grid: '#dce2ec', board: '#20262f', boardInk: '#ffffff',
+           pen: '#1f2937', icon: '#4a5568', brandSoft: '#eaf0ff',
+           veil: 'rgba(255,255,255,.95)' },
+  black: { paper: '#15181d', ink: '#e8edf6', muted: '#7c8798', line: '#262c36',
+           soft: '#1c2027', grid: '#2c3441', board: '#f7f8fb', boardInk: '#1f2937',
+           pen: '#ffffff', icon: '#a9b4c6', brandSoft: 'rgba(47,107,255,.18)',
+           veil: 'rgba(21,24,29,.96)' },
+};
+
+function theme() { return PAPER[state.theme] || PAPER.white; }
+
+/** 中性色翻面：近黑↔近白，彩色一律不动（红蓝这些在两种纸上都看得见）。 */
+function flipInk(color) {
+  const m = /^#([0-9a-f]{6})$/i.exec(String(color || ''));
+  if (!m) return color;
+  const n = parseInt(m[1], 16);
+  const r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+  const chroma = (Math.max(r, g, b) - Math.min(r, g, b)) / 255;
+  const lum = (0.21 * r + 0.72 * g + 0.07 * b) / 255;
+  if (chroma > 0.13) return color;
+  if (lum > 0.82) return '#1f2937';
+  if (lum < 0.30) return '#e8edf6';
+  return color;
+}
+
+/** 切换纸张；小黑板、板上的字、纸上的中性笔迹都跟着翻色。 */
+function applyTheme(name, opts = {}) {
+  state.theme = PAPER[name] ? name : 'white';
+  const t = theme();
+  const root = document.documentElement.style;
+  root.setProperty('--paper', t.paper);
+  root.setProperty('--ink', t.ink);
+  root.setProperty('--muted', t.muted);
+  root.setProperty('--line', t.line);
+  root.setProperty('--soft', t.soft);
+  root.setProperty('--icon', t.icon);
+  root.setProperty('--brand-soft', t.brandSoft);
+  root.setProperty('--veil', t.veil);
+  document.body.classList.toggle('theme-black', state.theme === 'black');
+
+  // 切换时才有「翻色」这回事：打开工程 / 启动时内容本来就是配好的，
+  // 再翻一次会把用户存下来的颜色改坏，所以只在 history 或显式 invert 时做。
+  const invert = !!(opts.invert || opts.history);
+  const objs = objects();
+  const boardIds = new Set(objs.filter(o => o.type === 'board').map(o => o.id));
+  if (invert && objs.length) {
+    if (opts.history) beginChange();
+    for (const b of objs) {
+      if (b.type === 'board') { b.color = t.board; continue; }
+      if (b.type === 'image') continue;
+      if (boardIds.has(b.owner)) { b.color = t.boardInk; continue; }
+      if (typeof b.color === 'string') b.color = flipInk(b.color);
+    }
+    if (opts.history) commitChange();
+  } else if (objs.length) {
+    // 不翻色也要保证小黑板跟纸张互为反色
+    for (const b of objs) if (b.type === 'board') b.color = t.board;
+  }
+
+  if (!opts.keepPen) {
+    state.color = t.pen;
+    try { buildPenPanel(); refreshColorDot(); } catch (e) { /* 还没建面板 */ }
+  }
+
+  const sw = document.getElementById('themeSwitch');
+  if (sw) {
+    sw.classList.toggle('on', state.theme === 'black');
+    sw.querySelectorAll('.lab').forEach(l => l.classList.toggle('on', l.dataset.theme === state.theme));
+  }
+
+  try { localStorage.setItem('whiteboard.theme', state.theme); } catch (e) {}
+  if (!opts.quiet) { cacheDirty = true; requestRender(); }
+}
+
+/* ---- 滚动：纵向 0..50 屏 ---- */
+const SCROLL_MAX = 50;
+function pageH() { return Math.max(1, canvas.clientHeight); }
+
+/** 当前位置：0 = 顶端，50 = 底端。 */
+function scrollPos() { return clamp(-state.cam.y / pageH(), 0, SCROLL_MAX); }
+
+/** 把镜头夹在 0..50 屏之间，返回撞到的那一端（没撞到返回 null）。 */
+function clampCam() {
+  const h = pageH();
+  const want = state.cam.y;
+  state.cam.y = clamp(want, -SCROLL_MAX * h, 0);
+  if (want > 1) return 'top';
+  if (want < -SCROLL_MAX * h - 1) return 'bottom';
+  return null;
+}
+
+/** 左下角常驻的位置读数；撞到边界时额外挂一句提示，两秒后自己收掉。 */
+function showScrollHud(edge) {
+  const el = document.getElementById('scrollHud');
+  if (!el) return;
+  el.classList.add('show');
+
+  const posEl = document.getElementById('scrollPos');
+  if (posEl) posEl.textContent = scrollPos().toFixed(1);
+
+  const labEl = document.getElementById('scrollLab');
+  if (labEl) labEl.textContent = T('hud.pos');
+
+  const edgeEl = document.getElementById('scrollEdge');
+  if (!edgeEl) return;
+  if (edge === 'top' || edge === 'bottom') {
+    edgeEl.textContent = T(edge === 'top' ? 'hud.top' : 'hud.bottom');
+    edgeEl.classList.add('on');
+    clearTimeout(showScrollHud._t);
+    showScrollHud._t = setTimeout(() => {
+      edgeEl.textContent = '';
+      edgeEl.classList.remove('on');
+    }, 2200);
+  } else if (!showScrollHud._t) {
+    edgeEl.textContent = '';
+    edgeEl.classList.remove('on');
+  }
+}
+
+/* ---- 小黑板归属与浮动对象 ---- */
+/* 没锁的图片 / 小黑板浮在屏幕上：平移缩放时位置不动。
+   锁上之后钉进画布，跟着白板一起滚。 */
+function isFloaty(o) {
+  return (o.type === 'image' || o.type === 'board') && !o.locked;
+}
+
+function childrenOf(id) { return objects().filter(c => c.owner === id); }
+
+function moveWithChildren(o, dx, dy) {
+  translateObject(o, dx, dy);
+  if (o.type === 'board') for (const c of childrenOf(o.id)) translateObject(c, dx, dy);
+}
+
+function scaleWithChildren(o, ax, ay, k) {
+  scaleObject(o, ax, ay, k);
+  if (o.type === 'board') for (const c of childrenOf(o.id)) scaleObject(c, ax, ay, k);
+}
+
+/** 镜头变了以后，把浮动对象按「屏幕位置不变」重新摆一遍。 */
+function keepFloatyOnScreen(prevCam, prevScale) {
+  const s = state.cam.s;
+  for (const o of objects()) {
+    if (!isFloaty(o)) continue;
+    const sx = o.x * prevScale + prevCam.x;
+    const sy = o.y * prevScale + prevCam.y;
+    const k = prevScale / s;
+    if (Math.abs(k - 1) > 1e-6) scaleWithChildren(o, o.x, o.y, k);
+    moveWithChildren(o, (sx - state.cam.x) / s - o.x, (sy - state.cam.y) / s - o.y);
+  }
+}
+
+function boardAt(wx, wy) {
+  for (const o of objects()) {
+    if (o.type !== 'board') continue;
+    if (wx >= o.x && wx <= o.x + o.w && wy >= o.y && wy <= o.y + o.h) return o;
+  }
+  return null;
+}
+
+/** 删除对象；删小黑板时把板上的字一起带走。 */
+function deleteObjects(list) {
+  const objs = objects();
+  const kill = new Set();
+  for (const o of list) {
+    kill.add(o.id);
+    if (o.type === 'board') for (const c of childrenOf(o.id)) kill.add(c.id);
+  }
+  for (let i = objs.length - 1; i >= 0; i--) if (kill.has(objs[i].id)) objs.splice(i, 1);
+}
 
 /* =========================================================
    2. 提示
@@ -636,7 +1309,7 @@ function drawGrid(c, w, h) {
   const r = s > 1.2 ? 1.4 : 1;
   window.__tag('grid step=' + step + ' w=' + w + ' h=' + h);
   c.save();
-  c.fillStyle = '#dce2ec';
+  c.fillStyle = theme().grid;
   // 一次 path 批量绘制所有点，比逐个 fill 快得多
   c.beginPath();
   for (let x = ox; x < w; x += step) {
@@ -762,15 +1435,34 @@ function renderObject(c, o) {
       const r = Math.min(14, o.w / 6, o.h / 6);
       c.beginPath();
       c.roundRect(o.x, o.y, o.w, o.h, r);
-      c.fillStyle = '#20262f';
+      c.fillStyle = o.color || theme().board;
       c.fill();
-      c.strokeStyle = 'rgba(255,255,255,.09)';
+      c.strokeStyle = isDark(o.color || theme().board) ? 'rgba(255,255,255,.09)' : 'rgba(15,23,42,.12)';
       c.lineWidth = 2;
       c.stroke();
       break;
     }
   }
   c.restore();
+}
+
+/** 统一渲染顺序：小黑板垫底，写在板上的笔画裁剪在板面内。 */
+function renderAll(c, objs) {
+  for (const o of objs) if (o.type === 'board') renderObject(c, o);
+  for (const o of objs) {
+    if (o.type === 'board') continue;
+    const owner = o.owner ? objs.find(x => x.id === o.owner) : null;
+    if (owner) {
+      c.save();
+      c.beginPath();
+      c.rect(owner.x, owner.y, owner.w, owner.h);
+      c.clip();
+      renderObject(c, o);
+      c.restore();
+    } else {
+      renderObject(c, o);
+    }
+  }
 }
 
 /* 渲染统计：出性能问题时能直接读出重建次数和耗时 */
@@ -787,10 +1479,7 @@ function buildCache() {
   cctx.translate(state.cam.x, state.cam.y);
   cctx.scale(state.cam.s, state.cam.s);
 
-  const objs = objects();
-  // 小黑板永远垫在最底层
-  for (const o of objs) if (o.type === 'board') renderObject(cctx, o);
-  for (const o of objs) if (o.type !== 'board') renderObject(cctx, o);
+  renderAll(cctx, objects());
 
   cctx.restore();
   cacheDirty = false;
@@ -948,7 +1637,7 @@ function hitTest(o, wx, wy, tol) {
   return false;
 }
 
-function topObjectAt(wx, wy, includeLocked = false) {
+function topObjectAt(wx, wy, includeLocked = true) {
   const tol = 6 / state.cam.s;
   const objs = objects();
   for (let i = objs.length - 1; i >= 0; i--) {
@@ -1061,14 +1750,9 @@ function hydrateImages() {
    9. 绘制
    ========================================================= */
 function inkFor(wx, wy) {
-  // 落在小黑板上且当前色偏深时，自动换成白色，否则看不见
-  for (const o of objects()) {
-    if (o.type !== 'board') continue;
-    if (wx > o.x && wx < o.x + o.w && wy > o.y && wy < o.y + o.h) {
-      const dark = isDark(state.color);
-      return dark ? '#ffffff' : state.color;
-    }
-  }
+  // 落在小黑板上时，一律用与板底色相反的颜色，否则看不见
+  const b = boardAt(wx, wy);
+  if (b) return isDark(b.color || theme().board) ? '#ffffff' : '#1f2937';
   return state.color;
 }
 
@@ -1079,11 +1763,12 @@ function isDark(hex) {
 }
 
 function beginDraw(wx, wy, e) {
+  const board = boardAt(wx, wy);
   const base = { id: uid(), color: inkFor(wx, wy), width: state.size, opacity: 1,
-                 x1: wx, y1: wy, x2: wx, y2: wy };
+                 x1: wx, y1: wy, x2: wx, y2: wy, owner: board ? board.id : undefined };
   if (state.tool === 'pen') {
     state.draft = {
-      id: uid(), type: 'path', penType: state.penType,
+      id: uid(), type: 'path', penType: state.penType, owner: base.owner,
       color: base.color, width: state.size, opacity: 1,
       pressure: e.pointerType === 'pen' && e.pressure > 0 && e.pressure !== 0.5,
       points: [{ x: wx, y: wy, p: e.pressure, t: performance.now() }],
@@ -1180,7 +1865,8 @@ const isPan = (e) => state.spaceDown || e.button === 1 || (e.button === 0 && e.a
 
 canvas.addEventListener('pointerdown', (e) => {
   window.__tag('down ' + state.tool);
-  canvas.setPointerCapture(e.pointerId);
+  // 捕获失败不能影响后续逻辑（合成事件、或系统拒绝捕获都会抛）
+  try { canvas.setPointerCapture(e.pointerId); } catch (err) { /* ignore */ }
   const sp = eventPos(e);
   const w = screenToWorld(sp.x, sp.y);
 
@@ -1194,12 +1880,14 @@ canvas.addEventListener('pointerdown', (e) => {
   if (state.tool === 'select') {
     const handle = state.selection.length ? hitHandle(sp.x, sp.y) : null;
     if (handle) {
+      // 锁定的对象点得中、也能解锁，但不许缩放
+      if (state.selection.some(o => o.locked)) { toast(T('t.lockedResize')); return; }
       const b = selectionBounds();
       const anchor = {
         nw: [b.x + b.w, b.y + b.h], ne: [b.x, b.y + b.h],
         sw: [b.x + b.w, b.y], se: [b.x, b.y],
       }[handle];
-      state.resize = { ax: anchor[0], ay: anchor[1], ox: w.x, oy: w.y, start: JSON.parse(JSON.stringify(state.selection)) };
+      state.resize = { ax: anchor[0], ay: anchor[1], ox: w.x, oy: w.y, lastK: 1 };
       beginChange();
       return;
     }
@@ -1213,8 +1901,14 @@ canvas.addEventListener('pointerdown', (e) => {
       } else if (!state.selection.includes(hit)) {
         state.selection = [hit];
       }
-      state.drag = { ox: w.x, oy: w.y };
-      beginChange();
+      if (hit.locked) {
+        // 锁定 = 钉在纸上：能选中、能解锁，但拖不动
+        state.drag = null;
+        toast(T('t.lockedDrag'));
+      } else {
+        state.drag = { ox: w.x, oy: w.y };
+        beginChange();
+      }
       updateSelbar();
       requestRender();
     } else {
@@ -1228,11 +1922,10 @@ canvas.addEventListener('pointerdown', (e) => {
   if (state.tool === 'text') { openTextEditor(sp.x, sp.y, w.x, w.y); return; }
 
   if (state.tool === 'eraser') {
-    const hit = topObjectAt(w.x, w.y);
+    const hit = topObjectAt(w.x, w.y, false);
     if (hit) {
       beginChange();
-      const i = objects().indexOf(hit);
-      if (i >= 0) objects().splice(i, 1);
+      deleteObjects([hit]);
       commitChange();
     }
     return;
@@ -1247,10 +1940,14 @@ canvas.addEventListener('pointermove', (e) => {
   const w = screenToWorld(sp.x, sp.y);
 
   if (state.panning) {
+    const prev = { x: state.cam.x, y: state.cam.y, s: state.cam.s };
     state.cam.x = state.panning.cx + (sp.x - state.panning.x);
     state.cam.y = state.panning.cy + (sp.y - state.panning.y);
+    const edge = clampCam();
+    keepFloatyOnScreen(prev, prev.s);
     cacheDirty = true;
     requestRender();
+    showScrollHud(edge);
     return;
   }
 
@@ -1259,8 +1956,10 @@ canvas.addEventListener('pointermove', (e) => {
     const d0 = Math.hypot(r.ox - r.ax, r.oy - r.ay) || 1;
     const d1 = Math.hypot(w.x - r.ax, w.y - r.ay);
     const k = clamp(d1 / d0, 0.05, 40);
-    state.selection = JSON.parse(JSON.stringify(r.start));
-    for (const o of state.selection) scaleObject(o, r.ax, r.ay, k);
+    const kf = k / (r.lastK || 1);
+    r.lastK = k;
+    // 增量缩放：小黑板上的字跟着一起缩，不用每帧重建快照
+    for (const o of state.selection) scaleWithChildren(o, r.ax, r.ay, kf);
     cacheDirty = true;
     requestRender();
     return;
@@ -1268,7 +1967,7 @@ canvas.addEventListener('pointermove', (e) => {
 
   if (state.drag && state.selection.length) {
     const dx = w.x - state.drag.ox, dy = w.y - state.drag.oy;
-    for (const o of state.selection) if (!o.locked) translateObject(o, dx, dy);
+    for (const o of state.selection) if (!o.locked) moveWithChildren(o, dx, dy);
     state.drag.ox = w.x; state.drag.oy = w.y;
     cacheDirty = true;
     requestRender();
@@ -1284,11 +1983,10 @@ canvas.addEventListener('pointermove', (e) => {
   }
 
   if (state.tool === 'eraser' && e.buttons === 1) {
-    const hit = topObjectAt(w.x, w.y);
+    const hit = topObjectAt(w.x, w.y, false);
     if (hit) {
       beginChange();
-      const i = objects().indexOf(hit);
-      if (i >= 0) objects().splice(i, 1);
+      deleteObjects([hit]);
       commitChange();
     }
     return;
@@ -1322,12 +2020,11 @@ function endPointer() {
     state.marquee = null;
     if (m.w > 2 && m.h > 2) {
       state.selection = objects().filter(o => {
-        if (o.locked) return false;
         const b = bounds(o);
         if (!b) return false;
         return b.x + b.w > m.x && b.x < m.x + m.w && b.y + b.h > m.y && b.y < m.y + m.h;
       });
-      if (state.selection.length) toast(`选中 ${state.selection.length} 个对象`);
+      if (state.selection.length) toast(T('t.selected', { n: state.selection.length }));
       updateSelbar();
     }
     requestRender();
@@ -1345,12 +2042,16 @@ canvas.addEventListener('wheel', (e) => {
   if (e.ctrlKey || e.metaKey) {
     const sp = eventPos(e);
     zoomAt(e.deltaY < 0 ? 1.1 : 1 / 1.1, sp.x, sp.y);
-  } else {
-    state.cam.x -= e.deltaX;
-    state.cam.y -= e.deltaY;
-    cacheDirty = true;
-    requestRender();
+    return;
   }
+  const prev = { x: state.cam.x, y: state.cam.y, s: state.cam.s };
+  state.cam.x -= e.deltaX;
+  state.cam.y -= e.deltaY;
+  const edge = clampCam();
+  keepFloatyOnScreen(prev, prev.s);
+  cacheDirty = true;
+  requestRender();
+  showScrollHud(edge);
 }, { passive: false });
 
 /* =========================================================
@@ -1378,9 +2079,11 @@ function commitText() {
   textInput.style.display = 'none';
   if (!value.trim()) { requestRender(); return; }
   beginChange();
+  const board = boardAt(meta.wx, meta.wy);
   objects().push({
-    id: uid(), type: 'text', color: state.color, opacity: 1,
+    id: uid(), type: 'text', color: board ? inkFor(meta.wx, meta.wy) : state.color, opacity: 1,
     x: meta.wx, y: meta.wy, size: meta.size, text: value,
+    owner: board ? board.id : undefined,
   });
   commitChange();
 }
@@ -1400,11 +2103,14 @@ textInput.addEventListener('blur', commitText);
    13. 缩放 / 页面
    ========================================================= */
 function zoomAt(factor, sx, sy) {
+  const prev = { x: state.cam.x, y: state.cam.y, s: state.cam.s };
   const next = clamp(state.cam.s * factor, MIN_SCALE, MAX_SCALE);
   const k = next / state.cam.s;
   state.cam.x = sx - (sx - state.cam.x) * k;
   state.cam.y = sy - (sy - state.cam.y) * k;
   state.cam.s = next;
+  clampCam();
+  keepFloatyOnScreen(prev, prev.s);
   document.getElementById('zoomLabel').textContent = `${Math.round(next * 100)}%`;
   cacheDirty = true;
   requestRender();
@@ -1427,7 +2133,7 @@ function switchPage(i) {
 function addPage() {
   state.pages.splice(state.current + 1, 0, newPageObj());
   switchPage(state.current + 1);
-  toast('已新建页面');
+  toast(T('t.pageNew'));
 }
 
 function dupPage() {
@@ -1438,11 +2144,11 @@ function dupPage() {
   });
   switchPage(state.current + 1);
   hydrateImages();
-  toast('已复制当前页');
+  toast(T('t.pageDup'));
 }
 
 function deletePage() {
-  if (state.pages.length <= 1) { toast('至少要留一页'); return; }
+  if (state.pages.length <= 1) { toast(T('t.pageKeep')); return; }
   const idx = state.current;
   state.pages.splice(idx, 1);
   state.current = Math.max(0, idx - 1);
@@ -1474,7 +2180,8 @@ function renderPageGrid() {
    ========================================================= */
 function projectData() {
   return {
-    app: 'whiteboard', version: 2, savedAt: new Date().toISOString(),
+    app: 'CleanBlackboard', version: 2, savedAt: new Date().toISOString(),
+    theme: state.theme,
     pages: state.pages.map(p => ({
       id: p.id,
       objects: p.objects.map(o => { const c = { ...o }; delete c._img; return c; }),
@@ -1486,6 +2193,7 @@ function applyProject(data) {
   if (!data || !Array.isArray(data.pages) || !data.pages.length) throw new Error('不是简黑板工程文件');
   state.pages = data.pages.map(p => ({ id: p.id || uid(), objects: p.objects || [] }));
   state.current = 0;
+  if (data.theme === 'black' || data.theme === 'white') applyTheme(data.theme, { quiet: true });
   clearSelection();
   undoStack.length = 0; redoStack.length = 0;
   hydrateImages();
@@ -1513,12 +2221,12 @@ async function saveProject() {
   await NativeReady;
   const json = JSON.stringify(projectData(), null, 1);
   const name = `CleanBlackboard-${stamp()}.wbjson`;
-  if (!native) { downloadBlob(new Blob([json], { type: 'application/json' }), name); toast('已下载工程文件'); return; }
+  if (!native) { downloadBlob(new Blob([json], { type: 'application/json' }), name); toast(T('t.projectSaved')); return; }
   try {
     const r = await native.save_project(json, name);
-    if (r.ok) { state.dirty = false; toast('已保存到 ' + r.path); }
-    else if (!r.cancel) toast('保存失败：' + r.error);
-  } catch (err) { toast('保存失败：' + err.message); }
+    if (r.ok) { state.dirty = false; toast(T('t.saved') + r.path); }
+    else if (!r.cancel) toast(T('t.saveFail') + r.error);
+  } catch (err) { toast(T('t.saveFail') + err.message); }
 }
 
 async function openProject() {
@@ -1526,16 +2234,16 @@ async function openProject() {
   if (!native) { document.getElementById('fileOpen').click(); return; }
   try {
     const r = await native.open_project();
-    if (!r.ok) { if (!r.cancel) toast('打开失败：' + r.error); return; }
+    if (!r.ok) { if (!r.cancel) toast(T('t.openFail') + r.error); return; }
     applyProject(JSON.parse(r.content));
     document.getElementById('welcome').classList.add('hide');
-    toast(`已打开 ${r.path.split(/[\\/]/).pop()}`);
-  } catch (err) { toast('这个文件打不开：' + err.message); }
+    toast(T('t.opened') + r.path.split(/[\\/]/).pop());
+  } catch (err) { toast(T('t.badFile') + err.message); }
 }
 
 function exportPng() {
   const objs = objects();
-  if (!objs.length) { toast('当前页是空的'); return; }
+  if (!objs.length) { toast(T('t.empty')); return; }
 
   let x1 = Infinity, y1 = Infinity, x2 = -Infinity, y2 = -Infinity;
   for (const o of objs) {
@@ -1544,7 +2252,7 @@ function exportPng() {
     x1 = Math.min(x1, b.x); y1 = Math.min(y1, b.y);
     x2 = Math.max(x2, b.x + b.w); y2 = Math.max(y2, b.y + b.h);
   }
-  if (!isFinite(x1)) { toast('当前页是空的'); return; }
+  if (!isFinite(x1)) { toast(T('t.empty')); return; }
 
   const pad = 48;
   const w = x2 - x1 + pad * 2, h = y2 - y1 + pad * 2;
@@ -1559,19 +2267,18 @@ function exportPng() {
   octx.setTransform(scale, 0, 0, scale, 0, 0);
   octx.translate(-x1 + pad, -y1 + pad);
 
-  for (const o of objs) if (o.type === 'board') renderObject(octx, o);
-  for (const o of objs) if (o.type !== 'board') renderObject(octx, o);
+  renderAll(octx, objs);
 
   const dataUrl = off.toDataURL('image/png');
   const name = `CleanBlackboard-第${state.current + 1}页-${stamp()}.png`;
 
   if (native) {
     native.save_png(dataUrl, name).then((r) => {
-      if (r.ok) toast('图片已保存到 ' + r.path);
-      else if (!r.cancel) toast('保存失败：' + r.error);
-    }).catch((err) => toast('保存失败：' + err.message));
+      if (r.ok) toast(T('t.imgSaved') + r.path);
+      else if (!r.cancel) toast(T('t.saveFail') + r.error);
+    }).catch((err) => toast(T('t.saveFail') + err.message));
   } else {
-    off.toBlob((blob) => { downloadBlob(blob, name); toast('图片已导出'); }, 'image/png');
+    off.toBlob((blob) => { downloadBlob(blob, name); toast(T('t.imgExported')); }, 'image/png');
   }
 }
 
@@ -1580,8 +2287,8 @@ document.getElementById('fileOpen').onchange = (e) => {
   e.target.value = '';
   if (!f) return;
   f.text().then((txt) => {
-    try { applyProject(JSON.parse(txt)); document.getElementById('welcome').classList.add('hide'); toast('已打开工程'); }
-    catch (err) { toast('这个文件打不开：' + err.message); }
+    try { applyProject(JSON.parse(txt)); document.getElementById('welcome').classList.add('hide'); toast(T('t.projOpened')); }
+    catch (err) { toast(T('t.badFile') + err.message); }
   });
 };
 
@@ -1602,7 +2309,7 @@ function insertImageFile(file, at) {
       objects().push({ id: uid(), type: 'image', color: '#000', opacity: 1,
                        x: c.x - w / 2, y: c.y - h / 2, w, h, src, _img: img });
       commitChange();
-      toast('图片已插入');
+      toast(T('t.imgInserted'));
     };
     img.src = src;
   };
@@ -1615,11 +2322,11 @@ function insertBlackboard() {
   const h = w * 0.56;
   beginChange();
   objects().unshift({
-    id: uid(), type: 'board', color: '#20262f',
+    id: uid(), type: 'board', color: theme().board,
     x: c.x - w / 2, y: c.y - h / 2, w, h, opacity: 1,
   });
   commitChange();
-  toast('小黑板已插入，在上面写字会自动用白笔');
+  toast(T('t.boardAdded'));
 }
 
 document.getElementById('fileImage').onchange = (e) => {
@@ -1655,13 +2362,13 @@ window.addEventListener('drop', (e) => {
     if (f.type.startsWith('image/')) { insertImageFile(f, w); shown++; }
     else if (/\.(wbjson|json)$/i.test(f.name)) {
       f.text().then((txt) => {
-        try { applyProject(JSON.parse(txt)); document.getElementById('welcome').classList.add('hide'); toast('已打开工程'); }
-        catch (err) { toast('这个文件打不开'); }
+        try { applyProject(JSON.parse(txt)); document.getElementById('welcome').classList.add('hide'); toast(T('t.projOpened')); }
+        catch (err) { toast(T('t.badFile')); }
       });
       return;
     }
   }
-  if (!shown) toast('只支持图片文件和 .wbjson 工程');
+  if (!shown) toast(T('t.onlyImg'));
 });
 
 document.addEventListener('paste', (e) => {
@@ -1685,6 +2392,7 @@ function saveLocal() {
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify({
         current: state.current,
+        theme: state.theme,
         pages: state.pages.map(p => ({
           id: p.id,
           objects: p.objects.map(o => { const c = { ...o }; delete c._img; return c; }),
@@ -1702,6 +2410,7 @@ function loadLocal() {
     if (!d.pages || !d.pages.length) return false;
     state.pages = d.pages.map(p => ({ id: p.id || uid(), objects: p.objects || [] }));
     state.current = clamp(d.current || 0, 0, state.pages.length - 1);
+    if (d.theme === 'black' || d.theme === 'white') state.theme = d.theme;
     hydrateImages();
     return true;
   } catch (e) { return false; }
@@ -1774,6 +2483,28 @@ document.addEventListener('click', (e) => {
   if (!openPopId) return;
   if (e.target.closest('.pop') || e.target.closest('#rail')) return;
   closePops();
+});
+
+document.getElementById('btnTheme').onclick = (e) => {
+  e.stopPropagation();
+  const sw = document.getElementById('themeSwitch');
+  sw.classList.toggle('on', state.theme === 'black');
+  sw.querySelectorAll('.lab').forEach(l => l.classList.toggle('on', l.dataset.theme === state.theme));
+  togglePop('themePop', 'btnTheme');
+};
+
+document.getElementById('themeSwitch').onclick = () => {
+  applyTheme(state.theme === 'white' ? 'black' : 'white', { history: true });
+  toast(T(state.theme === 'black' ? 't.themeBlack' : 't.themeWhite'));
+};
+
+document.querySelectorAll('#themeSwitch .lab').forEach(lab => {
+  lab.onclick = (e) => {
+    e.stopPropagation();
+    if (lab.dataset.theme === state.theme) return;
+    applyTheme(lab.dataset.theme, { history: true });
+    toast(T(lab.dataset.theme === 'black' ? 't.themeBlack' : 't.themeWhite'));
+  };
 });
 
 document.getElementById('btnShapes').onclick = (e) => { e.stopPropagation(); togglePop('shapePop', 'btnShapes'); };
@@ -1877,7 +2608,7 @@ document.getElementById('sbTop').onclick = () => {
     if (i >= 0) { objs.splice(i, 1); objs.push(o); }
   }
   commitChange();
-  toast('已置顶');
+  toast(T('t.front'));
 };
 
 document.getElementById('sbClone').onclick = () => {
@@ -1893,26 +2624,25 @@ document.getElementById('sbClone').onclick = () => {
   objects().push(...copies);
   state.selection = copies;
   commitChange();
-  toast('已克隆');
+  toast(T('t.cloned'));
 };
 
 document.getElementById('sbLock').onclick = () => {
   if (!state.selection.length) return;
+  // 只有图片和小黑板需要锁：文字、涂鸦本来就钉在纸上
+  const lockable = state.selection.filter(o => o.type === 'image' || o.type === 'board');
+  if (!lockable.length) { toast(T('t.noLockNeed')); return; }
+  const lock = !lockable.every(o => o.locked);
   beginChange();
-  const lock = !state.selection.every(o => o.locked);
-  for (const o of state.selection) o.locked = lock;
+  for (const o of lockable) o.locked = lock;
   commitChange();
-  toast(lock ? '已锁定，点一下还能解锁' : '已解锁');
+  toast(T(lock ? 't.lockOn' : 't.lockOff'));
 };
 
 document.getElementById('sbDel').onclick = () => {
   if (!state.selection.length) return;
   beginChange();
-  const objs = objects();
-  for (const o of state.selection) {
-    const i = objs.indexOf(o);
-    if (i >= 0) objs.splice(i, 1);
-  }
+  deleteObjects(state.selection);
   clearSelection();
   commitChange();
 };
@@ -1960,16 +2690,27 @@ document.getElementById('btnSave').onclick = () => { closePops(); saveProject();
 document.getElementById('btnOpen').onclick = () => { closePops(); openProject(); };
 document.getElementById('btnClear').onclick = () => {
   closePops();
-  if (!objects().length) { toast('当前页已经是空的'); return; }
+  if (!objects().length) { toast(T('t.alreadyEmpty')); return; }
   beginChange();
   page().objects = [];
   clearSelection();
   commitChange();
-  toast('已清空，可以 Ctrl+Z 撤销');
+  toast(T('t.cleared'));
 };
 document.getElementById('btnAddPage').onclick = () => { addPage(); renderPageGrid(); };
 document.getElementById('btnDupPage').onclick = () => { dupPage(); renderPageGrid(); };
 document.getElementById('btnDelPage').onclick = () => { deletePage(); renderPageGrid(); };
+
+// 文件弹窗里的语言切换：选完立刻生效，不用重启
+document.querySelectorAll('[data-setlang]').forEach((btn) => {
+  btn.onclick = () => setLang(btn.dataset.setlang, { toast: 't.langSwitched' });
+});
+
+// 右上角那个「中 / EN」：点一下中英互换
+const langBtn = document.getElementById('langBtn');
+if (langBtn) {
+  langBtn.onclick = () => setLang(lang === 'en' ? 'zh' : 'en', { toast: 't.langSwitched' });
+}
 
 function setCollapsed(v) {
   document.body.classList.toggle('collapsed', v);
@@ -2028,19 +2769,96 @@ window.addEventListener('keyup', (e) => {
 });
 
 /* =========================================================
+   20.5 启动更新提示
+   ========================================================= */
+const REPO = 'Liuyichen27/clean-blackboard';
+
+async function callNative(fn, ...args) {
+  const ok = await NativeReady;
+  if (!native || typeof native[fn] !== 'function') return null;
+  try { return await native[fn](...args); } catch (e) { return { ok: false, error: String(e) }; }
+}
+
+function setUpdateNote(text) {
+  const el = document.getElementById('updateNote');
+  if (el) el.textContent = text || '';
+}
+
+/** 桌面外壳每 0.4 秒回传一次下载进度。 */
+function updateProgress(p) {
+  if (!p) return;
+  const mb = (n) => (n / 1048576).toFixed(1);
+  if (p.pct === null || p.pct === undefined) {
+    setUpdateNote(`${T('up.downloading')}  ${mb(p.got)} MB`);
+  } else {
+    setUpdateNote(`${T('up.downloading')}  ${p.pct}%  (${mb(p.got)} / ${mb(p.total)} MB)`);
+  }
+}
+
+/** 桌面外壳查到新版本后调这里。 */
+function showUpdate(info) {
+  const wrap = document.getElementById('updateWrap');
+  if (!wrap) return;
+  const cur = (info && info.current) || '';
+  const latest = (info && info.latest) || '';
+  document.getElementById('updateTitle').textContent = T('up.title', { v: latest });
+  document.getElementById('updateVer').textContent =
+    T('up.desc', { c: cur, l: latest }) + (info && info.date ? T('up.date', { d: info.date }) : '');
+  document.getElementById('updateLater').textContent = T('up.later');
+  document.getElementById('updateNow').textContent = T('up.now');
+  document.getElementById('lnkManual').textContent = T('up.manual');
+  document.getElementById('lnkInstaller').textContent = T('up.installer');
+  setUpdateNote('');
+  wrap.classList.add('show');
+}
+
+document.getElementById('updateLater').onclick = () => {
+  document.getElementById('updateWrap').classList.remove('show');
+};
+
+document.getElementById('updateNow').onclick = async () => {
+  const btn = document.getElementById('updateNow');
+  btn.disabled = true;
+  setUpdateNote(T('up.downloading'));
+  const r = await callNative('download_update');
+  btn.disabled = false;
+  if (!r) { setUpdateNote(T('up.nonative')); return; }
+  if (r.ok) setUpdateNote(T('up.done', { p: r.path }));
+  else setUpdateNote(T('up.fail', { e: r.error || '?' }));
+};
+
+document.getElementById('lnkManual').onclick = async () => {
+  const url = `https://github.com/${REPO}/releases/latest`;
+  const r = await callNative('open_url', url);
+  if (!r) window.open(url, '_blank');
+};
+
+document.getElementById('lnkInstaller').onclick = async () => {
+  setUpdateNote(T('up.instDownloading'));
+  const r = await callNative('download_installer');
+  if (!r) { setUpdateNote(T('up.instNonative')); return; }
+  setUpdateNote(r.ok
+    ? T('up.instDone', { p: r.path })
+    : T('up.instFail', { e: r.error || '?' }));
+};
+
+/* =========================================================
    21. 启动
    ========================================================= */
 function init() {
+  askLangOnce();                       // 先定语言，后面的文案才不会中英混着
   const restored = loadLocal();
   if (!restored || !state.pages.length) state.pages = [newPageObj()];
 
   buildPenPanel();
+  applyTheme(state.theme, { keepPen: false, quiet: true });
   refreshColorDot();
   refreshSizeDots();
   renderPageGrid();
   resize();
   setTool('pen', { silent: true });   // silent：启动时不要把笔设置窗弹出来
   syncButtons();
+  showScrollHud(null);                // 位置读数常驻，一进来就看到 0.0
 
   try {
     if (localStorage.getItem('whiteboard.collapsed') === '1') setCollapsed(true);
@@ -2075,9 +2893,17 @@ window.__whiteboard = {
       applyProject(data);
       document.getElementById('welcome').classList.add('hide');
       return true;
-    } catch (err) { toast('这个工程打不开：' + err.message); return false; }
+    } catch (err) { toast(T('t.badFile') + err.message); return false; }
   },
   isDirty: () => state.dirty,
+  showUpdate,
+  updateProgress,
+  setTheme: (name) => applyTheme(name, { history: true }),
+  scrollPos,
+  // 语言：给自检和外壳用，平时走界面上的切换
+  lang: () => lang,
+  setLang: (name) => setLang(name),
+  t: T,
 };
 })();
 </script>

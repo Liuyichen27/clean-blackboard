@@ -32,6 +32,25 @@ async function main() {
   await page.goto(HTML);
   await page.waitForTimeout(500);
 
+  // ---- 0. 首次启动：英文提示选语言 ----
+  const langDlg = await page.evaluate(() => ({
+    shown: document.getElementById('langWrap').classList.contains('show'),
+    title: document.querySelector('#langCard h3').textContent.trim(),
+    desc: document.querySelector('#langCard p').textContent.trim(),
+    opts: [...document.querySelectorAll('#langCard [data-lang]')].map((b) => b.textContent.trim()),
+  }));
+  check('第一次打开会弹语言选择框', langDlg.shown);
+  check('提示是英文', /Choose your language/.test(langDlg.title), langDlg.title);
+  check('两个选项：简体中文 / English',
+    /简体中文/.test(langDlg.opts[0]) && /English/.test(langDlg.opts[1]), langDlg.opts.join(' | '));
+
+  await page.click('#langCard [data-lang="zh"]');
+  await page.waitForTimeout(250);
+  check('选完语言后弹框关闭',
+    !(await page.evaluate(() => document.getElementById('langWrap').classList.contains('show'))));
+  check('选中文后界面是中文',
+    (await page.evaluate(() => document.getElementById('fileTitle').textContent)) === '文件');
+
   const st = () => page.evaluate(() => {
     const s = window.__whiteboard.state;
     const p = s.pages[s.current];
@@ -167,15 +186,12 @@ async function main() {
     ['置顶', '锁定', '字号', '颜色', '删除'].every((k) => bar.btns.join(' ').includes(k)),
     bar.btns.join(' / '));
 
-  // ---- 9. 锁定 ----
+  // ---- 9. 锁定（只对图片/小黑板生效，涂鸦钉在纸上不用锁）----
   await page.click('#sbLock');
   await page.waitForTimeout(200);
   s = await st();
-  check('能锁定选中对象', s.objects.some((o) => o.locked), JSON.stringify(s.objects));
-  await page.click('#sbLock');
-  await page.waitForTimeout(200);
-  s = await st();
-  check('能解锁', s.objects.every((o) => !o.locked), JSON.stringify(s.objects));
+  check('涂鸦不参与锁定（本来就钉在纸上）',
+    s.objects.every((o) => !o.locked), JSON.stringify(s.objects));
 
   // ---- 10. 拖动移动 ----
   const firstPoint = () => page.evaluate(() => {
@@ -304,7 +320,264 @@ async function main() {
   }
   check('能导出 PNG（桌面版走原生保存框）', pngOk, `${(pngBytes / 1024).toFixed(0)} KB`);
 
-  // ---- 18. 报错 ----
+  // ---- 18. 小黑板：浮动 / 锁定 / 跟随笔画 ----
+  const boardInfo = () => page.evaluate(() => {
+    const s = window.__whiteboard.state;
+    const b = s.pages[s.current].objects.find((o) => o.type === 'board');
+    if (!b) return null;
+    const kids = s.pages[s.current].objects.filter((o) => o.owner === b.id);
+    return {
+      id: b.id, locked: !!b.locked, color: b.color,
+      x: b.x, y: b.y, w: b.w, h: b.h,
+      screenX: b.x * s.cam.s + s.cam.x, screenY: b.y * s.cam.s + s.cam.y,
+      kids: kids.length,
+      kidPos: kids.map((k) => (k.points ? [k.points[0].x, k.points[0].y] : null)),
+    };
+  });
+
+  // 在小黑板上写一笔，笔画应被记成它的子笔画
+  const b0 = await boardInfo();
+  await page.evaluate(() => {
+    const s = window.__whiteboard.state;
+    const b = s.pages[s.current].objects.find((o) => o.type === 'board');
+    window.__probe = { x: b.x * s.cam.s + s.cam.x + b.w * s.cam.s / 2,
+                       y: b.y * s.cam.s + s.cam.y + b.h * s.cam.s / 2 };
+  });
+  const pb = await page.evaluate(() => window.__probe);
+  await page.evaluate(() => {
+    const s = window.__whiteboard.state;
+    s.selection = [];
+    const canvas = document.getElementById('board');
+    canvas.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, clientX: window.__probe.x, clientY: window.__probe.y, button: 0, pointerId: 1 }));
+    for (let i = 1; i <= 6; i++) {
+      canvas.dispatchEvent(new PointerEvent('pointermove', { bubbles: true, clientX: window.__probe.x + i * 6, clientY: window.__probe.y + i * 3, buttons: 1, pointerId: 1 }));
+    }
+    canvas.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, clientX: window.__probe.x + 36, clientY: window.__probe.y + 18, button: 0, pointerId: 1 }));
+  });
+  await page.waitForTimeout(200);
+  const b1 = await boardInfo();
+  check('在小黑板上写字归属到板子', b1 && b1.kids >= 1, `子笔画 ${b1 ? b1.kids : '?'} 笔`);
+
+  // 拖动小黑板，板上的字要跟着走（用选择工具 + 真实鼠标）
+  await page.click('[data-tool="select"]');
+  await page.evaluate(() => {
+    const s = window.__whiteboard.state;
+    const b = s.pages[s.current].objects.find((o) => o.type === 'board');
+    s.selection = [];
+    window.__dragFrom = { x: b.x * s.cam.s + s.cam.x + 16, y: b.y * s.cam.s + s.cam.y + 16 };
+  });
+  const df = await page.evaluate(() => window.__dragFrom);
+  await page.mouse.move(df.x, df.y);
+  await page.mouse.down();
+  await page.mouse.move(df.x + 60, df.y + 40, { steps: 6 });
+  await page.mouse.up();
+  await page.waitForTimeout(200);
+  const b2 = await boardInfo();
+  check('拖动小黑板后板上的字跟着走',
+    b2 && b2.kids >= 1 && Math.abs((b2.x - b1.x) - 60 / await page.evaluate(() => window.__whiteboard.state.cam.s)) < 3,
+    `板位移 ${(b2.x - b1.x).toFixed(1)}`);
+
+  // 浮动：滚轮平移时小黑板在屏幕上不动
+  const beforePan = (await boardInfo()).screenY;
+  await page.mouse.move(200, 400);
+  await page.mouse.wheel(0, 300);
+  await page.waitForTimeout(200);
+  const afterPan = (await boardInfo()).screenY;
+  check('未锁定时小黑板不随白板滚动（浮在屏幕上）',
+    Math.abs(afterPan - beforePan) < 2, `屏幕 y：${beforePan.toFixed(1)} → ${afterPan.toFixed(1)}`);
+
+  // 锁定后应跟着白板一起滚
+  await page.evaluate(() => {
+    const s = window.__whiteboard.state;
+    const b = s.pages[s.current].objects.find((o) => o.type === 'board');
+    s.selection = [b];
+    document.getElementById('sbLock').click();
+  });
+  await page.waitForTimeout(200);
+  const lockedInfo = await boardInfo();
+  check('小黑板能锁定', lockedInfo.locked, JSON.stringify({ locked: lockedInfo.locked }));
+
+  // 锁定后仍然点得中（否则永远解不开）
+  await page.evaluate(() => { window.__whiteboard.state.selection = []; });
+  const probe = await page.evaluate(() => {
+    const s = window.__whiteboard.state;
+    const b = s.pages[s.current].objects.find((o) => o.type === 'board');
+    return { x: b.x * s.cam.s + s.cam.x + 12, y: b.y * s.cam.s + s.cam.y + 12 };
+  });
+  await page.mouse.click(probe.x, probe.y);
+  await page.waitForTimeout(200);
+  const selAfterClick = await page.evaluate(() => {
+    const s = window.__whiteboard.state;
+    return s.selection.map((o) => o.type);
+  });
+  check('锁定后仍能点选（好点解锁）', selAfterClick.includes('board'), JSON.stringify(selAfterClick));
+  const beforePan2 = (await boardInfo()).screenY;
+  await page.mouse.move(200, 400);
+  await page.mouse.wheel(0, 120);
+  await page.waitForTimeout(200);
+  const afterPan2 = (await boardInfo()).screenY;
+  check('锁定后小黑板跟着白板滚动',
+    Math.abs(afterPan2 - beforePan2) > 20, `屏幕 y：${beforePan2.toFixed(1)} → ${afterPan2.toFixed(1)}`);
+
+
+  // ---- 19. 滚动范围与位置提示 ----
+  const scrollTop = await page.evaluate(async () => {
+    const s = window.__whiteboard.state;
+    s.cam.y = 0; s.cam.x = 0;
+    const canvas = document.getElementById('board');
+    const r = canvas.getBoundingClientRect();
+    for (let i = 0; i < 3; i++) {
+      canvas.dispatchEvent(new WheelEvent('wheel', { deltaY: -200, bubbles: true, cancelable: true, clientX: 300, clientY: 300 }));
+    }
+    return { camY: s.cam.y, hud: document.getElementById('scrollHud').textContent,
+             shown: document.getElementById('scrollHud').classList.contains('show') };
+  });
+  check('在顶端继续上滑会被挡住', Math.abs(scrollTop.camY) < 1, `cam.y=${scrollTop.camY}`);
+  check('提示已达到顶端', /已达到顶端/.test(scrollTop.hud) && scrollTop.shown, scrollTop.hud);
+
+  const scrollMid = await page.evaluate(() => {
+    const s = window.__whiteboard.state;
+    const canvas = document.getElementById('board');
+    canvas.dispatchEvent(new WheelEvent('wheel', { deltaY: 900, bubbles: true, cancelable: true, clientX: 300, clientY: 300 }));
+    return { pos: window.__whiteboard.scrollPos(), hud: document.getElementById('scrollHud').textContent };
+  });
+  check('滑动时提示当前位置', /当前白板位置/.test(scrollMid.hud) && scrollMid.pos > 0,
+    `pos=${scrollMid.pos.toFixed(2)} · ${scrollMid.hud}`);
+
+  const scrollBottom = await page.evaluate(() => {
+    const s = window.__whiteboard.state;
+    s.cam.y = -60 * document.getElementById('board').clientHeight;
+    const canvas = document.getElementById('board');
+    canvas.dispatchEvent(new WheelEvent('wheel', { deltaY: 900, bubbles: true, cancelable: true, clientX: 300, clientY: 300 }));
+    return { pos: window.__whiteboard.scrollPos(), hud: document.getElementById('scrollHud').textContent };
+  });
+  check('在底部继续下滑会被挡住', Math.abs(scrollBottom.pos - 50) < 0.05, `pos=${scrollBottom.pos.toFixed(2)}`);
+  check('提示已达底端', /已达底端/.test(scrollBottom.hud), scrollBottom.hud);
+
+  // ---- 20. 黑板 / 白板切换 ----
+  await page.evaluate(() => { window.__whiteboard.state.cam.y = 0; });
+  await page.click('#btnTheme');
+  await page.waitForTimeout(200);
+  check('点按钮弹出黑白板开关', await page.evaluate(() =>
+    document.getElementById('themePop').classList.contains('show')));
+
+  const themeBefore = await page.evaluate(() => {
+    const s = window.__whiteboard.state;
+    const b = s.pages[s.current].objects.find((o) => o.type === 'board');
+    return { theme: s.theme, board: b ? b.color : null,
+             paper: getComputedStyle(document.documentElement).getPropertyValue('--paper').trim() };
+  });
+  await page.click('#themeSwitch');
+  await page.waitForTimeout(300);
+  const themeAfter = await page.evaluate(() => {
+    const s = window.__whiteboard.state;
+    const b = s.pages[s.current].objects.find((o) => o.type === 'board');
+    return { theme: s.theme, board: b ? b.color : null,
+             paper: getComputedStyle(document.documentElement).getPropertyValue('--paper').trim(),
+             bodyBlack: document.body.classList.contains('theme-black') };
+  });
+  check('开关能切到黑板', themeAfter.theme === 'black' && themeAfter.bodyBlack,
+    `${themeBefore.theme} → ${themeAfter.theme}`);
+  check('切到黑板后纸张变深', themeAfter.paper !== themeBefore.paper,
+    `${themeBefore.paper} → ${themeAfter.paper}`);
+  check('小黑板自动变成反色（小白板）',
+    themeAfter.board !== themeBefore.board && themeAfter.board.toLowerCase().startsWith('#f'),
+    `${themeBefore.board} → ${themeAfter.board}`);
+
+  // 切回白板
+  await page.evaluate(() => window.__whiteboard.setTheme('white'));
+  await page.waitForTimeout(200);
+
+  // ---- 21. 换纸时笔迹跟着翻色（黑底上不能是黑字）----
+  const inkFlip = await page.evaluate(() => {
+    const s = window.__whiteboard.state;
+    const p = s.pages[s.current];
+    p.objects = [{ id: 'ink1', type: 'stroke', color: '#1f2937', size: 4,
+                   pts: [{ x: 200, y: 200 }, { x: 260, y: 240 }] }];
+    s.selection = [];
+    window.__whiteboard.setTheme('black');
+    const after = p.objects[0].color;
+    window.__whiteboard.setTheme('white');
+    const back = p.objects[0].color;
+    return { after, back };
+  });
+  const lum = (hex) => {
+    const n = parseInt(hex.slice(1), 16);
+    return (0.21 * ((n >> 16) & 255) + 0.72 * ((n >> 8) & 255) + 0.07 * (n & 255)) / 255;
+  };
+  check('切到黑板后深色笔迹翻成浅色（不会看不见）',
+    lum(inkFlip.after) > 0.8, `#1f2937 → ${inkFlip.after}`);
+  check('切回白板笔迹又翻回深色', lum(inkFlip.back) < 0.35, `${inkFlip.after} → ${inkFlip.back}`);
+
+  // ---- 22. 中英切换 ----
+  const en = await page.evaluate(() => {
+    window.__whiteboard.setLang('en');
+    return {
+      tip: document.getElementById('btnPen').title,
+      file: document.getElementById('fileTitle').textContent,
+      welcome: document.getElementById('welcomeTitle').textContent,
+      start: document.getElementById('btnStart').textContent.trim(),
+      saved: localStorage.getItem('Language'),
+    };
+  });
+  check('切英文后按钮提示变英文', /Pen/.test(en.tip), en.tip);
+  check('切英文后菜单标题变英文', en.file === 'File', en.file);
+  check('切英文后欢迎语变英文', /Start your first/.test(en.welcome), en.welcome);
+  check('切英文后按钮文字变英文（图标还在）',
+    en.start === 'Start writing' &&
+    (await page.evaluate(() => !!document.querySelector('#btnPng svg'))), en.start);
+  check('语言选择被记住', en.saved === 'en', String(en.saved));
+
+  const zh = await page.evaluate(() => {
+    window.__whiteboard.setLang('zh');
+    return { file: document.getElementById('fileTitle').textContent,
+             start: document.getElementById('btnStart').textContent.trim() };
+  });
+  check('切回中文也正常', zh.file === '文件' && zh.start === '开始写字', `${zh.file}/${zh.start}`);
+
+  // 右上角那个常驻按钮
+  const beforeBtn = await page.evaluate(() => window.__whiteboard.lang());
+  await page.click('#langBtn');
+  await page.waitForTimeout(200);
+  const afterBtn = await page.evaluate(() => ({
+    lang: window.__whiteboard.lang(),
+    file: document.getElementById('fileTitle').textContent,
+    stored: localStorage.getItem('Language'),
+  }));
+  check('右上角中/EN 按钮能把界面切成英文',
+    beforeBtn === 'zh' && afterBtn.lang === 'en' && afterBtn.file === 'File',
+    `${beforeBtn} → ${afterBtn.lang} / ${afterBtn.file}`);
+  check('语言存在 Language 这个键里', afterBtn.stored === 'en', String(afterBtn.stored));
+  await page.click('#langBtn');
+  await page.waitForTimeout(150);
+  check('再点一下切回中文',
+    (await page.evaluate(() => document.getElementById('fileTitle').textContent)) === '文件');
+
+  // ---- 23. 版本更新弹框 ----
+  const upd = await page.evaluate(() => {
+    window.__whiteboard.showUpdate({ current: '1.0.0', latest: '9.9.9', date: '2026-10-25' });
+    return {
+      shown: document.getElementById('updateWrap').classList.contains('show'),
+      title: document.getElementById('updateTitle').textContent,
+      ver: document.getElementById('updateVer').textContent,
+      manual: document.getElementById('lnkManual').textContent,
+      installer: document.getElementById('lnkInstaller').textContent,
+      btns: [document.getElementById('updateLater').textContent,
+             document.getElementById('updateNow').textContent],
+    };
+  });
+  check('有新版本时弹出更新框', upd.shown);
+  check('更新框写清当前/最新版本',
+    /9\.9\.9/.test(upd.title) && /1\.0\.0/.test(upd.ver) && /9\.9\.9/.test(upd.ver),
+    `${upd.title} · ${upd.ver}`);
+  check('两行兜底链接都在', /手动下载/.test(upd.manual) && /安装器/.test(upd.installer),
+    `${upd.manual} | ${upd.installer}`);
+  check('有取消和更新两个按钮', upd.btns.join('/') === '以后再说/立即更新', upd.btns.join('/'));
+  await page.click('#updateLater');
+  check('点以后再说能关掉更新框',
+    !(await page.evaluate(() => document.getElementById('updateWrap').classList.contains('show'))));
+
+  // ---- 24. 报错 ----
   check('运行期无 JS 报错', errors.length === 0, errors.slice(0, 4).join(' | '));
 
   // ---- 截图留档 ----
