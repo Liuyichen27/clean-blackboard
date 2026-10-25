@@ -11,7 +11,6 @@ import json
 import os
 import re
 import sys
-import tempfile
 import threading
 import time
 import traceback
@@ -55,43 +54,6 @@ def resource_root() -> Path:
     if getattr(sys, "frozen", False):
         return Path(getattr(sys, "_MEIPASS", Path(sys.executable).parent))
     return Path(__file__).resolve().parent
-
-
-def _set_clipboard_image(path: str) -> bool:
-    """把一张图片放进 Windows 剪贴板。
-
-    走 .NET 的 Clipboard.SetImage：不用 Pillow，也不受浏览器剪贴板权限影响。
-    剪贴板只能在 STA 线程里操作，所以单开一个 STA 线程，做完等它回来。
-    """
-    try:
-        import clr  # pythonnet 是 pywebview 的依赖，打包时已经带上
-
-        clr.AddReference("System.Windows.Forms")
-        clr.AddReference("System.Drawing")
-        from System.Drawing import Bitmap
-        from System.Threading import ApartmentState, Thread, ThreadStart
-        from System.Windows.Forms import Clipboard
-    except Exception:
-        return False
-
-    result = {"ok": False}
-
-    def work() -> None:
-        try:
-            img = Bitmap(path)
-            try:
-                Clipboard.SetImage(img)
-                result["ok"] = True
-            finally:
-                img.Dispose()
-        except Exception:
-            result["ok"] = False
-
-    t = Thread(ThreadStart(work))
-    t.SetApartmentState(ApartmentState.STA)
-    t.Start()
-    t.Join(10000)
-    return bool(result["ok"])
 
 
 def app_dir() -> Path:
@@ -356,31 +318,6 @@ class Api:
             blob = base64.b64decode(data_url[len(PNG_PREFIX):])
             Path(path).write_bytes(blob)
             return {"ok": True, "path": path, "bytes": len(blob)}
-        except Exception as e:
-            return {"ok": False, "error": f"{type(e).__name__}: {e}"}
-
-    def copy_image(self, data_url: str) -> dict:
-        """把 dataURL 里的图片塞进剪贴板。
-
-        浏览器自己的 clipboard API 在 WebView2 里偶尔会被权限挡掉，这里用
-        .NET 的 Clipboard.SetImage 兜底 —— 不需要 Pillow，剪贴板必须在 STA
-        线程里碰，所以单开一个 STA 线程做，做完再回来。
-        """
-        try:
-            if not data_url.startswith(PNG_PREFIX):
-                return {"ok": False, "error": "图片数据格式不对"}
-
-            blob = base64.b64decode(data_url[len(PNG_PREFIX):])
-            tmp = Path(tempfile.gettempdir()) / f"{APP_SLUG}-clip-{int(time.time() * 1000)}.png"
-            tmp.write_bytes(blob)
-            try:
-                ok = _set_clipboard_image(str(tmp))
-            finally:
-                try:
-                    tmp.unlink()
-                except OSError:
-                    pass
-            return {"ok": ok, "bytes": len(blob)}
         except Exception as e:
             return {"ok": False, "error": f"{type(e).__name__}: {e}"}
 

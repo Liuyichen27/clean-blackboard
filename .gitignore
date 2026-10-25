@@ -14,4 +14,3 @@ _demo*
 
 # 截图产物（README 里用的是 docs/ 下的图）
 build_tools/shot-*.png
-build_tools/_shot_*.png

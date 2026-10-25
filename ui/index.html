@@ -215,65 +215,6 @@
   #updateCard button.primary { background: var(--brand); border-color: var(--brand); color: #fff; }
   #updateNote { margin-top: 10px; font-size: 12px; color: var(--muted); min-height: 16px; }
 
-  /* --- 橡皮再点一次：滑到底才清空（防手滑） --- */
-  #eraserPop { width: 300px; padding: 14px 14px 12px; }
-  #eraserPop h5 { margin-bottom: 10px; }
-  #eraseTrack {
-    position: relative; height: 46px; border-radius: 12px;
-    background: rgba(255,255,255,.05); border: 1px solid rgba(255,255,255,.1);
-    overflow: hidden; touch-action: none; user-select: none;
-  }
-  #eraseFill {
-    position: absolute; left: 0; top: 0; bottom: 0; width: 0;
-    background: linear-gradient(90deg, rgba(255,90,90,.16), rgba(255,64,64,.55));
-  }
-  #eraseHint {
-    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
-    font-size: 12px; color: #9aa5b6; pointer-events: none; letter-spacing: .3px;
-  }
-  #eraseKnob {
-    position: absolute; top: 4px; left: 4px; width: 54px; height: 38px; border-radius: 9px;
-    display: flex; align-items: center; justify-content: center; cursor: grab;
-    background: #2b3242; border: 1px solid rgba(255,255,255,.16); color: #dbe3f0;
-    transition: transform .24s cubic-bezier(.3,.9,.3,1), background .18s, border-color .18s;
-  }
-  #eraseKnob svg { width: 18px; height: 18px; stroke: currentColor; fill: none;
-                   stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
-  #eraseKnob.drag { transition: background .18s, border-color .18s; cursor: grabbing; }
-  #eraseKnob.armed { background: #ff4d4d; border-color: #ff4d4d; color: #fff; }
-  #eraserPop .slidehint { margin: 9px 2px 0; font-size: 10.5px; line-height: 1.65; color: #7c8798; }
-
-  /* --- 分享：长截图预览 --- */
-  #shareWrap {
-    position: fixed; inset: 0; z-index: 62; display: none;
-    align-items: center; justify-content: center; background: rgba(12, 16, 24, .45);
-  }
-  #shareWrap.show { display: flex; }
-  #shareCard {
-    width: min(620px, calc(100vw - 72px)); max-height: calc(100vh - 72px);
-    display: flex; flex-direction: column; padding: 18px 18px 14px;
-    border-radius: 16px; background: var(--paper); border: 1px solid var(--line);
-    box-shadow: 0 24px 60px rgba(16, 24, 40, .3);
-  }
-  #shareCard h4 { margin: 0 0 5px; font-size: 15px; }
-  #shareCard .sdesc { font-size: 12px; color: var(--muted); margin-bottom: 12px; line-height: 1.6; }
-  #shareShot {
-    flex: 1 1 auto; min-height: 120px; overflow: auto; padding: 10px;
-    border-radius: 10px; background: var(--soft); border: 1px solid var(--line);
-    display: flex; align-items: flex-start; justify-content: center;
-  }
-  #shareShot img {
-    max-width: 100%; height: auto; display: block; border-radius: 6px;
-    box-shadow: 0 6px 18px rgba(16, 24, 40, .16);
-  }
-  #shareMeta { margin-top: 10px; font-size: 11px; color: var(--muted); min-height: 15px; }
-  #shareActs { margin-top: 12px; display: flex; justify-content: flex-end; gap: 8px; }
-  #shareActs button {
-    height: 34px; padding: 0 16px; border-radius: 9px; border: 1px solid var(--line);
-    background: var(--soft); color: var(--ink); font-size: 12px; cursor: pointer;
-  }
-  #shareActs button.primary { background: var(--brand); border-color: var(--brand); color: #fff; }
-
   .pop.light { background: var(--paper); border: 1px solid var(--line); padding: 12px; }
   .pop.dark { background: var(--dark); color: #e8edf6; padding: 0; overflow: hidden; width: 316px; }
 
@@ -550,7 +491,7 @@ window.__slow = (what, ms) => {
     <svg viewBox="0 0 24 24"><path d="M4 20l4-1 10-10-3-3L5 16z"/><path d="M14 6l3 3"/></svg>
     <span class="dot" id="penDot"></span>
   </button>
-  <button class="rbtn" data-tool="eraser" id="btnEraser" title="橡皮 · 整笔擦除 (E) · 再点一次清空全部">
+  <button class="rbtn" data-tool="eraser" title="橡皮 · 整笔擦除 (E)">
     <svg viewBox="0 0 24 24"><path d="M4 16l6-6 8 8H8z"/><path d="M10 10l4-4 6 6-4 4"/></svg>
   </button>
   <button class="rbtn" data-tool="select" title="选择 / 框选 (V)">
@@ -567,9 +508,6 @@ window.__slow = (what, ms) => {
   </button>
   <button class="rbtn" id="btnBoard" title="插入小黑板">
     <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="13" rx="2"/><path d="M8 21l4-4 4 4"/></svg>
-  </button>
-  <button class="rbtn" id="btnShare" title="分享 · 板书长截图">
-    <svg viewBox="0 0 24 24"><path d="M12 15V4"/><path d="M8 8l4-4 4 4"/><path d="M5 13v6h14v-6"/></svg>
   </button>
 
   <div class="rsep"></div>
@@ -623,19 +561,6 @@ window.__slow = (what, ms) => {
   </div>
 </div>
 
-<!-- ============ 橡皮再点一次：滑动清空全部板书 ============ -->
-<div class="pop dark" id="eraserPop">
-  <h5 id="eraseTitle">全部清除</h5>
-  <div id="eraseTrack">
-    <div id="eraseFill"></div>
-    <div id="eraseHint">向右滑动清除全部板书</div>
-    <div id="eraseKnob" role="slider" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" tabindex="0">
-      <svg viewBox="0 0 24 24"><path d="M9 6l6 6-6 6"/></svg>
-    </div>
-  </div>
-  <p class="slidehint" id="eraseNote">所有页一起清空，滑到底才生效，松手前都不算。清完还能 Ctrl+Z 撤销。</p>
-</div>
-
 <!-- ============ 形状浮窗 ============ -->
 <div class="pop light" id="shapePop">
   <h5 id="shapeTitle">形状</h5>
@@ -676,21 +601,6 @@ window.__slow = (what, ms) => {
     <div class="uacts">
       <button id="updateLater">以后再说</button>
       <button id="updateNow" class="primary">立即更新</button>
-    </div>
-  </div>
-</div>
-
-<!-- ============ 分享：板书长截图 ============ -->
-<div id="shareWrap">
-  <div id="shareCard">
-    <h4 id="shareTitle">分享板书</h4>
-    <div class="sdesc" id="shareDesc">整块板书的长截图已自动复制到剪贴板，直接粘到聊天窗口就能发。</div>
-    <div id="shareShot"><img id="shareImg" alt="板书长截图"></div>
-    <div id="shareMeta"></div>
-    <div id="shareActs">
-      <button id="shareClose">关闭</button>
-      <button id="shareCopy">再复制一次</button>
-      <button id="shareSave" class="primary">保存到本地</button>
     </div>
   </div>
 </div>
@@ -819,8 +729,7 @@ let lang = 'zh';
 const I18N = {
   zh: {
     'tip.pen': '画笔 (P) · 再点一次换颜色',
-    'tip.eraser': '橡皮 · 整笔擦除 (E) · 再点一次清空全部',
-    'tip.share': '分享 · 板书长截图',
+    'tip.eraser': '橡皮 · 整笔擦除 (E)',
     'tip.select': '选择 / 框选 (V)',
     'tip.shapes': '形状',
     'tip.text': '文字 (T)',
@@ -861,9 +770,6 @@ const I18N = {
     'ui.paperWhite': '白板', 'ui.paperBlack': '黑板',
     'ui.lang': '语言',
     'ui.dropzone': '松手即可插入图片',
-    'ui.eraseTitle': '全部清除',
-    'ui.eraseHint': '向右滑动清除全部板书',
-    'ui.eraseNote': '所有页一起清空，滑到底才生效，松手前都不算。清完还能 Ctrl+Z 撤销。',
 
     'welcome.title': '开始你的第一笔',
     'welcome.text': '右边是工具栏，点画笔再点一次可以换颜色。<br>滚轮平移、Ctrl + 滚轮缩放，图片直接拖进来。',
@@ -901,21 +807,11 @@ const I18N = {
     't.lockOn': '已锁定：钉在纸上，跟着白板滚动',
     't.lockOff': '已解锁：固定在屏幕上，不随白板滚动',
     't.alreadyEmpty': '当前页已经是空的', 't.cleared': '已清空，可以 Ctrl+Z 撤销',
-    't.allCleared': '全部板书已清空，可以 Ctrl+Z 撤销',
     't.projectSaved': '已下载工程文件', 't.langSwitched': '已切换成简体中文',
-
-    'share.title': '分享板书',
-    'share.desc': '整块板书拼成一张长图，已经自动复制到剪贴板——粘到聊天窗口就能发。',
-    'share.meta': '{w} × {h} 像素 · 共 {n} 页',
-    'share.copied': '已复制到剪贴板',
-    'share.copyFail': '剪贴板没写进去，点「保存到本地」也一样',
-    'share.close': '关闭', 'share.copy': '再复制一次', 'share.save': '保存到本地',
-    'share.empty': '板面上还没有内容，先写点什么',
   },
   en: {
     'tip.pen': 'Pen (P) · click again to change color',
-    'tip.eraser': 'Eraser · removes whole strokes (E) · click again to clear all',
-    'tip.share': 'Share · long screenshot of the board',
+    'tip.eraser': 'Eraser · removes whole strokes (E)',
     'tip.select': 'Select / marquee (V)',
     'tip.shapes': 'Shapes',
     'tip.text': 'Text (T)',
@@ -956,9 +852,6 @@ const I18N = {
     'ui.paperWhite': 'White', 'ui.paperBlack': 'Black',
     'ui.lang': 'Language',
     'ui.dropzone': 'Drop to insert the image',
-    'ui.eraseTitle': 'Clear everything',
-    'ui.eraseHint': 'Slide right to wipe the whole board',
-    'ui.eraseNote': 'Every page gets wiped. It only counts at the far right — and Ctrl+Z brings it back.',
 
     'welcome.title': 'Start your first stroke',
     'welcome.text': 'The toolbar is on the right — click the pen again to switch color.<br>Scroll to pan, Ctrl + scroll to zoom, or drag an image straight in.',
@@ -997,15 +890,6 @@ const I18N = {
     't.lockOn': 'Locked: pinned to the paper, scrolls with it',
     't.lockOff': 'Unlocked: fixed on screen, does not scroll',
     't.alreadyEmpty': 'This page is already empty', 't.cleared': 'Cleared — Ctrl+Z to undo',
-    't.allCleared': 'Whole board cleared — Ctrl+Z to undo',
-
-    'share.title': 'Share the board',
-    'share.desc': 'All pages stitched into one tall image, already copied to the clipboard — paste it straight into a chat.',
-    'share.meta': '{w} × {h} px · {n} page(s)',
-    'share.copied': 'Copied to clipboard',
-    'share.copyFail': "Couldn't reach the clipboard — use Save instead",
-    'share.close': 'Close', 'share.copy': 'Copy again', 'share.save': 'Save to disk',
-    'share.empty': 'Nothing on the board yet',
     't.projectSaved': 'Project file downloaded', 't.langSwitched': 'Switched to English',
   },
 };
@@ -1031,7 +915,7 @@ function setLabel(el, text) {
 }
 
 const LANG_TIPS = [
-  ['#btnPen', 'tip.pen'], ['#btnEraser', 'tip.eraser'], ['#btnShare', 'tip.share'],
+  ['#btnPen', 'tip.pen'], ['[data-tool="eraser"]', 'tip.eraser'],
   ['[data-tool="select"]', 'tip.select'], ['#btnShapes', 'tip.shapes'],
   ['[data-tool="text"]', 'tip.text'], ['#btnImage', 'tip.image'],
   ['#btnBoard', 'tip.board'], ['#btnPages', 'tip.pages'],
@@ -1053,7 +937,6 @@ const LANG_LABELS = [
   ['#sbTop', 'ui.front'], ['#sbClone', 'ui.clone'], ['#sbLock', 'ui.lock'],
   ['#sbFontDown', 'ui.size'], ['#sbFontUp', 'ui.size'], ['#sbColor', 'ui.color'],
   ['#sbDel', 'ui.del'],
-  ['#shareClose', 'share.close'], ['#shareCopy', 'share.copy'], ['#shareSave', 'share.save'],
 ];
 
 function applyLang() {
@@ -1080,11 +963,6 @@ function applyLang() {
   txt('welcomeTitle', 'welcome.title');
   txt('welcomeText', 'welcome.text', true);
   txt('dropzone', 'ui.dropzone');
-  txt('eraseTitle', 'ui.eraseTitle');
-  txt('eraseHint', 'ui.eraseHint');
-  txt('eraseNote', 'ui.eraseNote');
-  txt('shareTitle', 'share.title');
-  txt('shareDesc', 'share.desc');
   const penNames = { pen: 'ui.pen', marker: 'ui.marker', brush: 'ui.brush' };
   document.querySelectorAll('[data-pen]').forEach((b) => {
     b.textContent = T(penNames[b.dataset.pen] || 'ui.pen');
@@ -1568,24 +1446,22 @@ function renderObject(c, o) {
   c.restore();
 }
 
-/** 画一个对象：属于某块小黑板的，就裁到板子里——别把字写到板外。 */
-function renderClipped(c, o, objs) {
-  const owner = o.owner ? objs.find(x => x.id === o.owner) : null;
-  if (!owner) { renderObject(c, o); return; }
-  c.save();
-  c.beginPath();
-  c.rect(owner.x, owner.y, owner.w, owner.h);
-  c.clip();
-  renderObject(c, o);
-  c.restore();
-}
-
 /** 统一渲染顺序：小黑板垫底，写在板上的笔画裁剪在板面内。 */
 function renderAll(c, objs) {
   for (const o of objs) if (o.type === 'board') renderObject(c, o);
   for (const o of objs) {
     if (o.type === 'board') continue;
-    renderClipped(c, o, objs);
+    const owner = o.owner ? objs.find(x => x.id === o.owner) : null;
+    if (owner) {
+      c.save();
+      c.beginPath();
+      c.rect(owner.x, owner.y, owner.w, owner.h);
+      c.clip();
+      renderObject(c, o);
+      c.restore();
+    } else {
+      renderObject(c, o);
+    }
   }
 }
 
@@ -1640,7 +1516,7 @@ function render() {
   ctx.translate(state.cam.x, state.cam.y);
   ctx.scale(state.cam.s, state.cam.s);
 
-  if (state.draft) renderClipped(ctx, state.draft, objects());
+  if (state.draft) renderObject(ctx, state.draft);
 
   // 选中虚线框 + 四角手柄
   const b = selectionBounds();
@@ -1818,6 +1694,7 @@ function commitChange() {
     if (undoStack.length > MAX_HISTORY) undoStack.shift();
     redoStack.length = 0;
     state.dirty = true;
+    saveLocal();
   }
   pending = null;
   cacheDirty = true;
@@ -1827,16 +1704,12 @@ function commitChange() {
 
 function applySnapshot(json) {
   const data = JSON.parse(json);
-  // 页数也要回到快照那会儿：「全部清除」会把多页并成一页，撤销得能还回来
-  while (state.pages.length < data.length) state.pages.push(newPageObj());
-  state.pages.length = data.length;
-  data.forEach((objs, i) => { state.pages[i].objects = objs; });
-  state.current = clamp(state.current, 0, state.pages.length - 1);
+  data.forEach((objs, i) => { if (state.pages[i]) state.pages[i].objects = objs; });
   hydrateImages();
   clearSelection();
   cacheDirty = true;
   requestRender();
-  renderPageGrid();
+  saveLocal();
 }
 
 function undo() {
@@ -2254,6 +2127,7 @@ function switchPage(i) {
   requestRender();
   renderPageGrid();
   pageTip();
+  saveLocal();
 }
 
 function addPage() {
@@ -2284,6 +2158,7 @@ function deletePage() {
   requestRender();
   renderPageGrid();
   pageTip();
+  saveLocal();
   syncButtons();
 }
 
@@ -2326,6 +2201,7 @@ function applyProject(data) {
   requestRender();
   renderPageGrid();
   syncButtons();
+  saveLocal();
 }
 
 const stamp = () => {
@@ -2405,168 +2281,6 @@ function exportPng() {
     off.toBlob((blob) => { downloadBlob(blob, name); toast(T('t.imgExported')); }, 'image/png');
   }
 }
-
-/* =========================================================
-   15.2 分享：把整块板书拼成一张长图
-   ---------------------------------------------------------
-   一页一段，按内容包围盒裁，段与段之间留虚线；多页时标页码。
-   生成完先写进剪贴板，同时弹窗预览——想留就再点保存。
-   ========================================================= */
-const SHARE_MAX_H = 14000;
-let shareCanvas = null, shareDataUrl = '', shareNameF = '', sharePages = 0;
-
-function longShot() {
-  const th = theme();
-  const pad = 64, gap = 54, labelH = 46, minW = 960;
-  const blocks = [];
-  for (const p of state.pages) {
-    let x1 = Infinity, y1 = Infinity, x2 = -Infinity, y2 = -Infinity;
-    for (const o of p.objects) {
-      const b = bounds(o);
-      if (!b) continue;
-      x1 = Math.min(x1, b.x); y1 = Math.min(y1, b.y);
-      x2 = Math.max(x2, b.x + b.w); y2 = Math.max(y2, b.y + b.h);
-    }
-    if (isFinite(x1)) blocks.push({ objs: p.objects, x1, y1, x2, y2 });
-  }
-  if (!blocks.length) return null;
-
-  const multi = blocks.length > 1;
-  const innerW = Math.max(minW, ...blocks.map((b) => b.x2 - b.x1));
-  const w = innerW + pad * 2;
-  let h = pad;
-  blocks.forEach((b, i) => {
-    if (multi) h += labelH;
-    h += b.y2 - b.y1;
-    if (i < blocks.length - 1) h += gap;
-  });
-  h += pad + 26;                                  // 底部落款
-
-  let scale = clamp(1280 / w, 0.55, 2);
-  if (h * scale > SHARE_MAX_H) scale = SHARE_MAX_H / h;   // 再长就整体缩，别炸内存
-
-  const off = document.createElement('canvas');
-  off.width = Math.round(w * scale);
-  off.height = Math.round(h * scale);
-  const g = off.getContext('2d');
-  g.setTransform(scale, 0, 0, scale, 0, 0);
-  g.fillStyle = th.paper;
-  g.fillRect(0, 0, w, h);
-
-  let y = pad;
-  blocks.forEach((b, i) => {
-    if (multi) {
-      g.fillStyle = th.muted;
-      g.font = '600 20px "Microsoft YaHei", "Segoe UI", sans-serif';
-      g.textAlign = 'left';
-      g.fillText(`${i + 1} / ${blocks.length}`, pad, y + 24);
-      y += labelH;
-    }
-    g.save();
-    g.translate(pad - b.x1, y - b.y1);
-    renderAll(g, b.objs);
-    g.restore();
-    y += b.y2 - b.y1;
-    if (i < blocks.length - 1) {
-      g.strokeStyle = th.line;
-      g.lineWidth = 2;
-      g.setLineDash([10, 10]);
-      g.beginPath();
-      g.moveTo(pad, y + gap / 2);
-      g.lineTo(w - pad, y + gap / 2);
-      g.stroke();
-      g.setLineDash([]);
-      y += gap;
-    }
-  });
-
-  g.fillStyle = th.muted;
-  g.font = '500 18px "Segoe UI", "Microsoft YaHei", sans-serif';
-  g.textAlign = 'right';
-  g.fillText('CleanBlackboard · 简黑板', w - pad, h - 34);
-
-  sharePages = blocks.length;
-  return off;
-}
-
-async function writeClipboard(off) {
-  // 先走浏览器自己的剪贴板：WebView2 支持直接写 PNG
-  try {
-    const blob = await new Promise((res) => off.toBlob(res, 'image/png'));
-    if (blob && navigator.clipboard && window.ClipboardItem) {
-      await navigator.clipboard.write([new ClipboardItem({ 'image/png': blob })]);
-      return true;
-    }
-  } catch (e) { /* 落到原生那条路 */ }
-  // 兜底：交给原生（.NET 的 Clipboard.SetImage，不依赖浏览器权限）
-  await NativeReady;
-  if (!native) return false;
-  try {
-    const r = await native.copy_image(off.toDataURL('image/png'));
-    return !!(r && r.ok);
-  } catch (e) { return false; }
-}
-
-function setShareNote(ok, note) {
-  const el = document.getElementById('shareMeta');
-  const dims = shareCanvas
-    ? T('share.meta', { w: shareCanvas.width, h: shareCanvas.height, n: sharePages })
-    : '';
-  el.textContent = dims ? `${dims} · ${note}` : note;
-  el.style.color = ok ? '' : '#e0453f';
-}
-
-function closeShare() {
-  document.getElementById('shareWrap').classList.remove('show');
-}
-
-async function openShare() {
-  const off = longShot();
-  if (!off) { toast(T('share.empty')); return; }
-  shareCanvas = off;
-  shareDataUrl = off.toDataURL('image/png');
-  shareNameF = `CleanBlackboard-long-${stamp()}.png`;
-  const img = document.getElementById('shareImg');
-  img.src = shareDataUrl;
-  setShareNote(true, T('share.copied'));       // 先按成功显示，写完再纠正
-  document.getElementById('shareWrap').classList.add('show');
-  const ok = await writeClipboard(off);
-  setShareNote(ok, T(ok ? 'share.copied' : 'share.copyFail'));
-}
-
-document.getElementById('btnShare').onclick = (e) => {
-  e.stopPropagation();
-  closePops();
-  openShare();
-};
-document.getElementById('shareClose').onclick = closeShare;
-document.getElementById('shareWrap').addEventListener('click', (e) => {
-  if (e.target.id === 'shareWrap') closeShare();
-});
-document.getElementById('shareCopy').onclick = async () => {
-  if (!shareCanvas) return;
-  const ok = await writeClipboard(shareCanvas);
-  setShareNote(ok, T(ok ? 'share.copied' : 'share.copyFail'));
-};
-document.getElementById('shareSave').onclick = async () => {
-  if (!shareDataUrl) return;
-  await NativeReady;
-  if (native) {
-    const r = await native.save_png(shareDataUrl, shareNameF);
-    if (r.ok) { toast(T('t.imgSaved') + r.path); closeShare(); }
-    else if (!r.cancel) toast(T('t.saveFail') + r.error);
-  } else {
-    const a = document.createElement('a');
-    a.href = shareDataUrl;
-    a.download = shareNameF;
-    a.click();
-    toast(T('t.imgExported'));
-    closeShare();
-  }
-};
-document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape' && document.getElementById('shareWrap').classList.contains('show')) closeShare();
-});
 
 document.getElementById('fileOpen').onchange = (e) => {
   const f = e.target.files[0];
@@ -2671,26 +2385,35 @@ document.addEventListener('paste', (e) => {
 /* =========================================================
    16. 本地存档
    ========================================================= */
-// 板面内容不跨启动保留：每次打开都是空板，上一轮写的东西一律清掉。
-// 想留住就 Ctrl+S 存成 .wbjson——这是唯一会被保存下来的东西。
-// 只留主题这类"偏好"，省得每次开都白得晃眼。
-function clearLocal() {
-  try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
+let saveTimer = null;
+function saveLocal() {
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({
+        current: state.current,
+        theme: state.theme,
+        pages: state.pages.map(p => ({
+          id: p.id,
+          objects: p.objects.map(o => { const c = { ...o }; delete c._img; return c; }),
+        })),
+      }));
+    } catch (e) { /* 超配额就算了 */ }
+  }, 400);
 }
 
-function savedTheme() {
+function loadLocal() {
   try {
-    const t = localStorage.getItem('whiteboard.theme');
-    return (t === 'black' || t === 'white') ? t : null;
-  } catch (e) { return null; }
-}
-
-function seenWelcome() {
-  try { return localStorage.getItem('whiteboard.seen') === '1'; } catch (e) { return false; }
-}
-
-function markWelcome() {
-  try { localStorage.setItem('whiteboard.seen', '1'); } catch (e) {}
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return false;
+    const d = JSON.parse(raw);
+    if (!d.pages || !d.pages.length) return false;
+    state.pages = d.pages.map(p => ({ id: p.id || uid(), objects: p.objects || [] }));
+    state.current = clamp(d.current || 0, 0, state.pages.length - 1);
+    if (d.theme === 'black' || d.theme === 'white') state.theme = d.theme;
+    hydrateImages();
+    return true;
+  } catch (e) { return false; }
 }
 
 /* =========================================================
@@ -2703,7 +2426,6 @@ function setTool(tool, opts = {}) {
   // 先记下笔设置窗原来是不是开着：下面 closePops 会把它关掉，
   // 如果关完再看状态，就永远判断成"没开"，于是关不掉也开不出来。
   const penPopWasOpen = document.getElementById('penPop').classList.contains('show');
-  const eraserPopWasOpen = document.getElementById('eraserPop').classList.contains('show');
   state.tool = tool;
   if (tool !== 'select') clearSelection();
   document.querySelectorAll('[data-tool]').forEach(b => b.classList.toggle('active', b.dataset.tool === tool));
@@ -2713,11 +2435,6 @@ function setTool(tool, opts = {}) {
   // 再点一次同一个画笔才弹设置窗；原先是开着的（刚被 closePops 关掉）就保持关闭；
   // silent 用于启动初始化，别一打开就弹
   if (tool === 'pen' && wasSame && !opts.silent && !penPopWasOpen) openPop('penPop', 'btnPen');
-  // 橡皮也一样：先选橡皮擦，再点一次才弹出「滑动清空全部」，不会误触
-  if (tool === 'eraser' && wasSame && !opts.silent && !eraserPopWasOpen) {
-    resetErase();
-    openPop('eraserPop', 'btnEraser');
-  }
   requestRender();
 }
 
@@ -2725,7 +2442,7 @@ document.querySelectorAll('[data-tool]').forEach(btn => {
   btn.addEventListener('click', (e) => {
     e.stopPropagation();
     setTool(btn.dataset.tool);
-    if (btn.dataset.tool !== 'pen' && btn.dataset.tool !== 'eraser') closePops();
+    if (btn.dataset.tool !== 'pen') closePops();
   });
 });
 
@@ -2980,84 +2697,6 @@ document.getElementById('btnClear').onclick = () => {
   commitChange();
   toast(T('t.cleared'));
 };
-
-/* =========================================================
-   19.5 全部清除（滑动确认）
-   ---------------------------------------------------------
-   清的是所有页，不只是当前页。滑到最右才动手，松手前都不算——
-   这块面板本来就是给"整块板子重来"用的，不该一点就没了。
-   ========================================================= */
-function clearAll() {
-  const total = state.pages.reduce((n, p) => n + p.objects.length, 0);
-  if (!total) { toast(T('t.alreadyEmpty')); return false; }
-  beginChange();
-  state.pages = [newPageObj()];
-  state.current = 0;
-  clearSelection();
-  cacheDirty = true;
-  commitChange();
-  renderPageGrid();
-  requestRender();
-  toast(T('t.allCleared'));
-  return true;
-}
-
-let eraseP = 0;
-
-function setEraseP(p, animate = true) {
-  const knob = document.getElementById('eraseKnob');
-  const track = document.getElementById('eraseTrack');
-  if (!knob || !track) return;
-  eraseP = clamp(p, 0, 1);
-  const max = Math.max(1, track.clientWidth - knob.offsetWidth - 8);
-  knob.classList.toggle('drag', !animate);
-  knob.style.transform = `translateX(${eraseP * max}px)`;
-  document.getElementById('eraseFill').style.width = `${eraseP * 100}%`;
-  knob.classList.toggle('armed', eraseP >= 0.88);
-  // 滑块往右走的时候把提示淡掉，别让字被挡在滑块底下
-  document.getElementById('eraseHint').style.opacity = String(Math.max(0, 1 - eraseP * 1.4));
-  knob.setAttribute('aria-valuenow', String(Math.round(eraseP * 100)));
-}
-
-function resetErase() {
-  setEraseP(0, false);
-  requestAnimationFrame(() => setEraseP(0, true));
-}
-
-const eraseKnobEl = document.getElementById('eraseKnob');
-if (eraseKnobEl) {
-  eraseKnobEl.addEventListener('pointerdown', (e) => {
-    e.preventDefault();
-    const track = document.getElementById('eraseTrack');
-    const rect = track.getBoundingClientRect();
-    const max = Math.max(1, track.clientWidth - eraseKnobEl.offsetWidth - 8);
-    eraseKnobEl.setPointerCapture(e.pointerId);
-    const move = (ev) => {
-      setEraseP((ev.clientX - rect.left - 4 - eraseKnobEl.offsetWidth / 2) / max, false);
-    };
-    const up = () => {
-      eraseKnobEl.removeEventListener('pointermove', move);
-      eraseKnobEl.removeEventListener('pointerup', up);
-      eraseKnobEl.removeEventListener('pointercancel', up);
-      if (eraseP >= 0.88) {
-        setEraseP(1, false);
-        if (clearAll()) closePops(); else setEraseP(0, true);
-      } else {
-        setEraseP(0, true);
-      }
-    };
-    eraseKnobEl.addEventListener('pointermove', move);
-    eraseKnobEl.addEventListener('pointerup', up);
-    eraseKnobEl.addEventListener('pointercancel', up);
-  });
-  // 键盘也能滑：左右方向键推到两端
-  eraseKnobEl.addEventListener('keydown', (e) => {
-    if (e.key === 'ArrowRight') { e.preventDefault(); setEraseP(eraseP + 0.34); }
-    if (e.key === 'ArrowLeft') { e.preventDefault(); setEraseP(eraseP - 0.34); }
-    if (e.key === 'Enter' && eraseP >= 0.88) { if (clearAll()) closePops(); }
-  });
-}
-
 document.getElementById('btnAddPage').onclick = () => { addPage(); renderPageGrid(); };
 document.getElementById('btnDupPage').onclick = () => { dupPage(); renderPageGrid(); };
 document.getElementById('btnDelPage').onclick = () => { deletePage(); renderPageGrid(); };
@@ -3208,11 +2847,8 @@ document.getElementById('lnkInstaller').onclick = async () => {
    ========================================================= */
 function init() {
   askLangOnce();                       // 先定语言，后面的文案才不会中英混着
-  clearLocal();                        // 上一轮写的东西一律不带过来，每次打开都是空板
-  state.pages = [newPageObj()];
-  state.current = 0;
-  const th = savedTheme();
-  if (th) state.theme = th;            // 主题算偏好，留着
+  const restored = loadLocal();
+  if (!restored || !state.pages.length) state.pages = [newPageObj()];
 
   buildPenPanel();
   applyTheme(state.theme, { keepPen: false, quiet: true });
@@ -3228,18 +2864,18 @@ function init() {
     if (localStorage.getItem('whiteboard.collapsed') === '1') setCollapsed(true);
   } catch (e) {}
 
-  // 开场提示只在头一次打开时出现，之后直接进空画板，不用每次点「开始写字」
-  if (seenWelcome()) document.getElementById('welcome').classList.add('hide');
+  const total = state.pages.reduce((s, p) => s + p.objects.length, 0);
+  if (restored && total > 0) document.getElementById('welcome').classList.add('hide');
 
   document.getElementById('btnStart').onclick = () => {
-    markWelcome();
     document.getElementById('welcome').classList.add('hide');
     setTool('pen');
     requestRender();
   };
 
   window.addEventListener('resize', resize);
-  // 不再注册 beforeunload：确认框是模态的，会把 WebView2 主线程卡成"未响应"。
+  // 不再注册 beforeunload：内容每 400ms 就自动存本地了，
+  // 而 WebView2 里的 beforeunload 确认框是模态的，会把窗口卡成"未响应"。
 }
 
 init();
