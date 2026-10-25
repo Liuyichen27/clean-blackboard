@@ -2,9 +2,9 @@
 
 [![Python](https://img.shields.io/badge/python-3.9%2B-3776AB)](https://www.python.org)
 [![License](https://img.shields.io/badge/license-MIT-12B76A)](LICENSE)
-[![Size](https://img.shields.io/badge/exe-14%20MB-2F6BFF)](#)
+[![Size](https://img.shields.io/badge/exe-13%20MB-2F6BFF)](#)
 
-双击打开就能写的白板。不用注册、不用登录、不联网。
+**简黑板（Clean Blackboard）** 是一个双击就能写的桌面白板：不用注册、不用登录、不联网，文件留在自己硬盘上。
 
 ![界面](assets/shot-canvas.png)
 
