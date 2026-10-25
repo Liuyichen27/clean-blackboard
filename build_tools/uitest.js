@@ -577,6 +577,133 @@ async function main() {
   check('点以后再说能关掉更新框',
     !(await page.evaluate(() => document.getElementById('updateWrap').classList.contains('show'))));
 
+  // ---- 23.5 小黑板：写在上面的笔画不能溢出板外 ----
+  const bd = await page.evaluate(() => {
+    const s = window.__whiteboard.state;
+    s.pages[0].objects = [];
+    s.cam = { x: 300, y: 200, s: 1 };
+    s.pages[0].objects.push({ id: 'bdTest', type: 'board', color: '#20262f',
+                              x: 200, y: 120, w: 400, h: 240, opacity: 1 });
+    window.__whiteboard.invalidate();
+    return { cam: s.cam };
+  });
+  await page.waitForTimeout(150);
+  // 板右边界在屏幕 900px 处，数一条 930~1010 的竖带里有没有墨
+  const bandInk = () => page.evaluate(() => {
+    const cv = document.getElementById('board');
+    const dpr = window.devicePixelRatio || 1;
+    const d = cv.getContext('2d').getImageData(Math.round(930 * dpr), Math.round(330 * dpr),
+                                               Math.round(80 * dpr), Math.round(220 * dpr)).data;
+    let n = 0;
+    for (let i = 3; i < d.length; i += 4) if (d[i] > 8) n++;
+    return n;
+  });
+  await page.click('[data-tool="pen"]');       // 上一段测的是框选，先切回画笔
+  await page.waitForTimeout(100);
+  const ink0 = await bandInk();
+  const bcx = 200 * bd.cam.s + bd.cam.x + 200;   // 板中心（屏幕）
+  const bcy = 120 * bd.cam.s + bd.cam.y + 120;
+  await page.mouse.move(bcx, bcy);
+  await page.mouse.down();
+  for (let i = 1; i <= 18; i++) await page.mouse.move(bcx + i * 18, bcy);
+  await page.waitForTimeout(120);
+  const inkDrawing = await bandInk();
+  await page.mouse.up();
+  await page.waitForTimeout(160);
+  const inkDone = await bandInk();
+  check('画在小黑板上的笔画不会溢出到板外（拖动过程中）', inkDrawing === ink0,
+    `板外像素 ${ink0} → ${inkDrawing}`);
+  check('落笔后也裁在板面内', inkDone === ink0, `板外像素 ${ink0} → ${inkDone}`);
+
+  // ---- 23.6 全部清除：橡皮点两次，滑到底 ----
+  await page.evaluate(() => {
+    const s = window.__whiteboard.state;
+    s.pages[0].objects.push({ id: 'x1', type: 'line', color: '#1f2937', width: 4,
+                              x1: 100, y1: 600, x2: 300, y2: 700 });
+    s.pages.push({ id: 'pg2', objects: [{ id: 'x2', type: 'line', color: '#1f2937', width: 4,
+                                          x1: 100, y1: 100, x2: 300, y2: 200 }] });
+    window.__whiteboard.invalidate();
+  });
+  await page.click('[data-tool="eraser"]');
+  await page.waitForTimeout(120);
+  const eraseShut = await page.evaluate(() =>
+    document.getElementById('eraserPop').classList.contains('show'));
+  check('第一次点橡皮只切工具，不弹面板', !eraseShut);
+
+  await page.click('[data-tool="eraser"]');
+  await page.waitForTimeout(200);
+  const eraseOpen = await page.evaluate(() => ({
+    show: document.getElementById('eraserPop').classList.contains('show'),
+    title: document.getElementById('eraseTitle').textContent,
+    hint: document.getElementById('eraseHint').textContent,
+  }));
+  check('再点一次橡皮弹出「全部清除」滑条',
+    eraseOpen.show && /全部清除/.test(eraseOpen.title) && /滑动/.test(eraseOpen.hint),
+    `${eraseOpen.title} / ${eraseOpen.hint}`);
+
+  const kn = await page.locator('#eraseKnob').boundingBox();
+  const tr = await page.locator('#eraseTrack').boundingBox();
+  await page.mouse.move(kn.x + kn.width / 2, kn.y + kn.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(tr.x + tr.width * 0.5, kn.y + kn.height / 2, { steps: 4 });
+  await page.mouse.up();
+  await page.waitForTimeout(250);
+  const halfWay = await page.evaluate(() => window.__whiteboard.state.pages
+    .reduce((n, p) => n + p.objects.length, 0));
+  check('滑到一半松手不清空', halfWay > 0, `还剩 ${halfWay} 个对象`);
+  const pre = await page.evaluate(() => ({
+    pages: window.__whiteboard.state.pages.length,
+    objs: window.__whiteboard.state.pages.reduce((n, p) => n + p.objects.length, 0),
+  }));
+
+  await page.mouse.move(kn.x + kn.width / 2, kn.y + kn.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(tr.x + tr.width - 4, kn.y + kn.height / 2, { steps: 8 });
+  await page.mouse.up();
+  await page.waitForTimeout(350);
+  const wiped = await page.evaluate(() => ({
+    objs: window.__whiteboard.state.pages.reduce((n, p) => n + p.objects.length, 0),
+    pages: window.__whiteboard.state.pages.length,
+    undo: !document.getElementById('btnUndo').disabled,
+  }));
+  check('滑到底清空所有页的板书', wiped.objs === 0 && wiped.pages === 1,
+    `${wiped.pages} 页 / ${wiped.objs} 个对象`);
+  check('清空之后能撤销', wiped.undo);
+
+  await page.click('#btnUndo');
+  await page.waitForTimeout(250);
+  const back = await page.evaluate(() => ({
+    pages: window.__whiteboard.state.pages.length,
+    objs: window.__whiteboard.state.pages.reduce((n, p) => n + p.objects.length, 0),
+  }));
+  check('撤销把页面和笔画都还回来',
+    back.pages === pre.pages && back.objs === pre.objs,
+    `清空前 ${pre.pages} 页 ${pre.objs} 个 → 撤销后 ${back.pages} 页 ${back.objs} 个`);
+
+  // ---- 23.7 分享：整块板书拼成一张长图 ----
+  await page.click('#btnShare');
+  await page.waitForTimeout(900);
+  const sh = await page.evaluate(() => {
+    const img = document.getElementById('shareImg');
+    return {
+      show: document.getElementById('shareWrap').classList.contains('show'),
+      w: img.naturalWidth,
+      h: img.naturalHeight,
+      meta: document.getElementById('shareMeta').textContent,
+      btns: [...document.querySelectorAll('#shareActs button')].map((b) => b.textContent.trim()),
+    };
+  });
+  check('点分享弹出预览窗', sh.show);
+  check('长截图按板书内容生成（够宽够长）', sh.w >= 1000 && sh.h >= 300,
+    `${sh.w} × ${sh.h}`);
+  check('预览窗写明尺寸和页数', /像素|px/.test(sh.meta) && /页|page/.test(sh.meta), sh.meta);
+  check('有三个按钮：关闭 / 再复制一次 / 保存到本地',
+    sh.btns.length === 3 && sh.btns[2] === '保存到本地', sh.btns.join(' | '));
+  await page.click('#shareClose');
+  await page.waitForTimeout(200);
+  check('关掉预览窗',
+    !(await page.evaluate(() => document.getElementById('shareWrap').classList.contains('show'))));
+
   // ---- 截图留档（趁板面上还有东西）----
   const shot = path.join(__dirname, '_uitest.png');
   await page.screenshot({ path: shot });
