@@ -1694,7 +1694,6 @@ function commitChange() {
     if (undoStack.length > MAX_HISTORY) undoStack.shift();
     redoStack.length = 0;
     state.dirty = true;
-    saveLocal();
   }
   pending = null;
   cacheDirty = true;
@@ -1709,7 +1708,6 @@ function applySnapshot(json) {
   clearSelection();
   cacheDirty = true;
   requestRender();
-  saveLocal();
 }
 
 function undo() {
@@ -2127,7 +2125,6 @@ function switchPage(i) {
   requestRender();
   renderPageGrid();
   pageTip();
-  saveLocal();
 }
 
 function addPage() {
@@ -2158,7 +2155,6 @@ function deletePage() {
   requestRender();
   renderPageGrid();
   pageTip();
-  saveLocal();
   syncButtons();
 }
 
@@ -2201,7 +2197,6 @@ function applyProject(data) {
   requestRender();
   renderPageGrid();
   syncButtons();
-  saveLocal();
 }
 
 const stamp = () => {
@@ -2385,35 +2380,26 @@ document.addEventListener('paste', (e) => {
 /* =========================================================
    16. 本地存档
    ========================================================= */
-let saveTimer = null;
-function saveLocal() {
-  clearTimeout(saveTimer);
-  saveTimer = setTimeout(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify({
-        current: state.current,
-        theme: state.theme,
-        pages: state.pages.map(p => ({
-          id: p.id,
-          objects: p.objects.map(o => { const c = { ...o }; delete c._img; return c; }),
-        })),
-      }));
-    } catch (e) { /* 超配额就算了 */ }
-  }, 400);
+// 板面内容不跨启动保留：每次打开都是空板，上一轮写的东西一律清掉。
+// 想留住就 Ctrl+S 存成 .wbjson——这是唯一会被保存下来的东西。
+// 只留主题这类"偏好"，省得每次开都白得晃眼。
+function clearLocal() {
+  try { localStorage.removeItem(STORAGE_KEY); } catch (e) {}
 }
 
-function loadLocal() {
+function savedTheme() {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return false;
-    const d = JSON.parse(raw);
-    if (!d.pages || !d.pages.length) return false;
-    state.pages = d.pages.map(p => ({ id: p.id || uid(), objects: p.objects || [] }));
-    state.current = clamp(d.current || 0, 0, state.pages.length - 1);
-    if (d.theme === 'black' || d.theme === 'white') state.theme = d.theme;
-    hydrateImages();
-    return true;
-  } catch (e) { return false; }
+    const t = localStorage.getItem('whiteboard.theme');
+    return (t === 'black' || t === 'white') ? t : null;
+  } catch (e) { return null; }
+}
+
+function seenWelcome() {
+  try { return localStorage.getItem('whiteboard.seen') === '1'; } catch (e) { return false; }
+}
+
+function markWelcome() {
+  try { localStorage.setItem('whiteboard.seen', '1'); } catch (e) {}
 }
 
 /* =========================================================
@@ -2847,8 +2833,11 @@ document.getElementById('lnkInstaller').onclick = async () => {
    ========================================================= */
 function init() {
   askLangOnce();                       // 先定语言，后面的文案才不会中英混着
-  const restored = loadLocal();
-  if (!restored || !state.pages.length) state.pages = [newPageObj()];
+  clearLocal();                        // 上一轮写的东西一律不带过来，每次打开都是空板
+  state.pages = [newPageObj()];
+  state.current = 0;
+  const th = savedTheme();
+  if (th) state.theme = th;            // 主题算偏好，留着
 
   buildPenPanel();
   applyTheme(state.theme, { keepPen: false, quiet: true });
@@ -2864,18 +2853,18 @@ function init() {
     if (localStorage.getItem('whiteboard.collapsed') === '1') setCollapsed(true);
   } catch (e) {}
 
-  const total = state.pages.reduce((s, p) => s + p.objects.length, 0);
-  if (restored && total > 0) document.getElementById('welcome').classList.add('hide');
+  // 开场提示只在头一次打开时出现，之后直接进空画板，不用每次点「开始写字」
+  if (seenWelcome()) document.getElementById('welcome').classList.add('hide');
 
   document.getElementById('btnStart').onclick = () => {
+    markWelcome();
     document.getElementById('welcome').classList.add('hide');
     setTool('pen');
     requestRender();
   };
 
   window.addEventListener('resize', resize);
-  // 不再注册 beforeunload：内容每 400ms 就自动存本地了，
-  // 而 WebView2 里的 beforeunload 确认框是模态的，会把窗口卡成"未响应"。
+  // 不再注册 beforeunload：确认框是模态的，会把 WebView2 主线程卡成"未响应"。
 }
 
 init();

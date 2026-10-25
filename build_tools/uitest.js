@@ -577,12 +577,62 @@ async function main() {
   check('点以后再说能关掉更新框',
     !(await page.evaluate(() => document.getElementById('updateWrap').classList.contains('show'))));
 
-  // ---- 24. 报错 ----
-  check('运行期无 JS 报错', errors.length === 0, errors.slice(0, 4).join(' | '));
-
-  // ---- 截图留档 ----
+  // ---- 截图留档（趁板面上还有东西）----
   const shot = path.join(__dirname, '_uitest.png');
   await page.screenshot({ path: shot });
+
+  // ---- 24. 每次打开都是空板 ----
+  // 假装上一轮写过内容（旧版快照），再刷新：应该一点不剩
+  await page.evaluate(() => {
+    localStorage.setItem('whiteboard.theme', 'black');
+    localStorage.setItem('whiteboard.v2', JSON.stringify({
+      current: 1,
+      theme: 'black',
+      pages: [
+        { id: 'old1', objects: [{ id: 'o1', type: 'stroke', color: '#111111', size: 4,
+                                  pts: [{ x: 10, y: 10 }, { x: 80, y: 60 }] }] },
+        { id: 'old2', objects: [{ id: 'o2', type: 'stroke', color: '#111111', size: 4,
+                                  pts: [{ x: 20, y: 20 }, { x: 90, y: 70 }] }] },
+      ],
+    }));
+  });
+  await page.reload();
+  await page.waitForTimeout(600);
+  const blank = await page.evaluate(() => {
+    const s = window.__whiteboard.state;
+    return {
+      objs: s.pages.reduce((n, p) => n + p.objects.length, 0),
+      pages: s.pages.length,
+      current: s.current,
+      snapshot: localStorage.getItem('whiteboard.v2'),
+      theme: s.theme,
+    };
+  });
+  check('重开时上一轮写的内容被清空',
+    blank.objs === 0 && blank.snapshot === null, `objects=${blank.objs} snapshot=${blank.snapshot}`);
+  check('多页也收回成一页空白', blank.pages === 1 && blank.current === 0,
+    `${blank.pages} 页 / 当前第 ${blank.current} 页`);
+  check('主题这种偏好还留着（上次是黑板）', blank.theme === 'black', blank.theme);
+
+  // 开场提示只出现一次：点过「开始写字」之后再开就直接进空画板
+  await page.evaluate(() => localStorage.removeItem('whiteboard.seen'));
+  await page.reload();
+  await page.waitForTimeout(500);
+  const w1 = await page.evaluate(() =>
+    !document.getElementById('welcome').classList.contains('hide'));
+  await page.click('#btnStart');
+  await page.waitForTimeout(200);
+  await page.reload();
+  await page.waitForTimeout(500);
+  const w2 = await page.evaluate(() => ({
+    hidden: document.getElementById('welcome').classList.contains('hide'),
+    objs: window.__whiteboard.state.pages.reduce((n, p) => n + p.objects.length, 0),
+  }));
+  check('开场提示只在第一次出现', w1 && w2.hidden, `第一次显示=${w1} 之后隐藏=${w2.hidden}`);
+  check('再开一次依然是空板', w2.objs === 0, `objects=${w2.objs}`);
+
+  // ---- 25. 报错 ----
+  check('运行期无 JS 报错', errors.length === 0, errors.slice(0, 4).join(' | '));
 
   await browser.close();
 
