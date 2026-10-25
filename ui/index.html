@@ -295,6 +295,47 @@
 </style>
 </head>
 <body>
+<script>
+/* 最早期挂错误收集：页面脚本报错时窗口模式下看不到控制台，先存起来 */
+window.__errors = [];
+window.addEventListener('error', (e) => {
+  window.__errors.push(`${e.message} @${e.lineno}:${e.colno}`);
+});
+window.addEventListener('unhandledrejection', (e) => {
+  window.__errors.push('未处理的 Promise: ' + (e.reason && e.reason.message ? e.reason.message : e.reason));
+});
+/* 诊断模式（index.html?diag=1）：把当前执行到哪一步写进标题栏。
+   窗口卡死时标题会停在最后一步，从外面就能读出卡在哪。 */
+const __DIAG = /[?&]diag=1/.test(location.search) || localStorage.getItem('whiteboard.diag') === '1';
+let __lastTag = '';
+window.__tag = (s) => {
+  if (!__DIAG || s === __lastTag) return;
+  __lastTag = s;
+  try {
+    if (window.pywebview && window.pywebview.api && window.pywebview.api.diag) {
+      window.pywebview.api.diag(s + ' @' + Math.round(performance.now()));
+    }
+  } catch (e) {}
+};
+
+/* 慢操作记账：>800ms 的渲染、>500ms 的存盘各记一行（每秒最多一条）。
+   用户再反馈"卡"，看一眼 diag.log 就知道卡在哪、当时多少对象、多大画布。 */
+let __slowAt = 0;
+window.__slow = (what, ms) => {
+  const now = Date.now();
+  if (now - __slowAt < 1000) return;
+  __slowAt = now;
+  try {
+    const api = window.pywebview && window.pywebview.api;
+    if (!api || !api.diag) return;
+    const st = window.__whiteboard && window.__whiteboard.state;
+    const objs = st ? st.pages.reduce((a, p) => a + p.objects.length, 0) : -1;
+    const c = document.getElementById('board');
+    api.diag(`SLOW ${what} ${Math.round(ms)}ms 对象=${objs} dpr=${window.devicePixelRatio}`
+      + ` 画布=${c ? c.width + 'x' + c.height : '?'} 屏幕=${screen.width}x${screen.height}`);
+  } catch (e) {}
+};
+</script>
 
 <div id="stage">
   <canvas id="board"></canvas>
@@ -540,8 +581,21 @@ function eventPos(e) {
 /* =========================================================
    4. 尺寸
    ========================================================= */
+// 画布像素预算。4K 屏 + 200% 缩放时，两块画布能吃到三五百 MB，
+// 渲染进程顶不住就整窗假死。所以超过预算就自动降采样，
+// 肉眼几乎看不出差别，内存和每帧拷贝量却少一大截。
+const PIXEL_BUDGET = 4.2e6;   // 约 2000×2000
+
+function effectiveDpr() {
+  const raw = window.devicePixelRatio || 1;
+  const cw = Math.max(1, canvas.clientWidth);
+  const ch = Math.max(1, canvas.clientHeight);
+  const byBudget = Math.sqrt(PIXEL_BUDGET / (cw * ch));
+  return Math.max(0.75, Math.min(raw, byBudget, 2));
+}
+
 function resize() {
-  dpr = window.devicePixelRatio || 1;
+  dpr = effectiveDpr();
   const w = canvas.clientWidth, h = canvas.clientHeight;
   canvas.width = Math.max(1, Math.round(w * dpr));
   canvas.height = Math.max(1, Math.round(h * dpr));
@@ -562,11 +616,20 @@ function requestRender() {
 
 function drawGrid(c, w, h) {
   const s = state.cam.s;
+  window.__tag('grid s=' + s);
   let step = 40 * s;
-  while (step < 18) step *= 5;
-  while (step > 160) step /= 2;
-  const ox = state.cam.x % step, oy = state.cam.y % step;
+  // 这里必须兜底：s 一旦是 0 / Infinity / NaN，下面的 while 会转不出来，
+  // 整个 UI 线程就被钉死，Windows 直接打「未响应」。
+  if (!Number.isFinite(step) || step <= 0) step = 40;
+  let guard = 0;
+  while (step < 18 && guard++ < 40) step *= 5;
+  guard = 0;
+  while (step > 160 && guard++ < 40) step /= 2;
+  if (!Number.isFinite(step) || step < 1) step = 40;
+  const ox = Number.isFinite(state.cam.x) ? state.cam.x % step : 0;
+  const oy = Number.isFinite(state.cam.y) ? state.cam.y % step : 0;
   const r = s > 1.2 ? 1.4 : 1;
+  window.__tag('grid step=' + step + ' w=' + w + ' h=' + h);
   c.save();
   c.fillStyle = '#dce2ec';
   // 一次 path 批量绘制所有点，比逐个 fill 快得多
@@ -705,7 +768,12 @@ function renderObject(c, o) {
   c.restore();
 }
 
+/* 渲染统计：出性能问题时能直接读出重建次数和耗时 */
+const perfStats = { cacheN: 0, cacheMs: 0, frameN: 0, frameMs: 0 };
+
 function buildCache() {
+  window.__tag('buildCache');
+  const _t0 = performance.now();
   cctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   cctx.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight);
   drawGrid(cctx, canvas.clientWidth, canvas.clientHeight);
@@ -721,6 +789,9 @@ function buildCache() {
 
   cctx.restore();
   cacheDirty = false;
+  window.__tag('cache-done');
+  perfStats.cacheN += 1;
+  perfStats.cacheMs += performance.now() - _t0;
 }
 
 function selectionBounds() {
@@ -738,6 +809,8 @@ function selectionBounds() {
 }
 
 function render() {
+  window.__tag('render');
+  const _t0 = performance.now();
   if (cacheDirty) buildCache();
 
   ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -786,6 +859,10 @@ function render() {
 
   ctx.restore();
   updateSelbar();
+  perfStats.frameN += 1;
+  const _ms = performance.now() - _t0;
+  perfStats.frameMs += _ms;
+  if (_ms > 800) window.__slow('render', _ms);
 }
 
 /* =========================================================
@@ -916,6 +993,7 @@ const snapshot = () => JSON.stringify(state.pages.map(p => p.objects));
 function beginChange() { if (pending === null) pending = snapshot(); }
 
 function commitChange() {
+  window.__tag('commit');
   if (pending === null) return;
   if (snapshot() !== pending) {
     undoStack.push(pending);
@@ -1096,6 +1174,7 @@ function hitHandle(sx, sy) {
 const isPan = (e) => state.spaceDown || e.button === 1 || (e.button === 0 && e.altKey);
 
 canvas.addEventListener('pointerdown', (e) => {
+  window.__tag('down ' + state.tool);
   canvas.setPointerCapture(e.pointerId);
   const sp = eventPos(e);
   const w = screenToWorld(sp.x, sp.y);
@@ -1217,6 +1296,7 @@ canvas.addEventListener('pointermove', (e) => {
 });
 
 function endPointer() {
+  window.__tag('up');
   if (state.panning) {
     state.panning = null;
     canvas.classList.remove('is-grabbing');
@@ -1627,15 +1707,20 @@ function loadLocal() {
    ========================================================= */
 const CURSOR = { select: 'is-select', text: 'is-text' };
 
-function setTool(tool) {
+function setTool(tool, opts = {}) {
   const wasSame = state.tool === tool;
+  // 先记下笔设置窗原来是不是开着：下面 closePops 会把它关掉，
+  // 如果关完再看状态，就永远判断成"没开"，于是关不掉也开不出来。
+  const penPopWasOpen = document.getElementById('penPop').classList.contains('show');
   state.tool = tool;
   if (tool !== 'select') clearSelection();
   document.querySelectorAll('[data-tool]').forEach(b => b.classList.toggle('active', b.dataset.tool === tool));
   canvas.className = '';
   if (CURSOR[tool]) canvas.classList.add(CURSOR[tool]);
   closePops();
-  if (tool === 'pen' && wasSame) openPop('penPop', 'btnPen');
+  // 再点一次同一个画笔才弹设置窗；原先是开着的（刚被 closePops 关掉）就保持关闭；
+  // silent 用于启动初始化，别一打开就弹
+  if (tool === 'pen' && wasSame && !opts.silent && !penPopWasOpen) openPop('penPop', 'btnPen');
   requestRender();
 }
 
@@ -1660,18 +1745,24 @@ function openPop(id, anchorId) {
   const anchor = document.getElementById(anchorId);
   if (!pop || !anchor) return;
 
-  const sameAlready = pop.classList.contains('show');
   closePops();
-  if (sameAlready) return;
-
   pop.classList.add('show');
+
+  // 先显示再量，量完贴着锚点摆到左边；左边放不下就贴边
   const r = anchor.getBoundingClientRect();
   const pr = pop.getBoundingClientRect();
   let top = r.top;
   if (top + pr.height > window.innerHeight - 10) top = window.innerHeight - pr.height - 10;
   pop.style.top = `${Math.max(8, top)}px`;
-  pop.style.left = `${r.left - pr.width - 8}px`;
+  pop.style.left = `${Math.max(8, r.left - pr.width - 8)}px`;
   openPopId = id;
+}
+
+/** 同一个按钮点第二下就收起——之前这里总是先 closePops 再判断，导致永远关不掉。 */
+function togglePop(id, anchorId) {
+  const pop = document.getElementById(id);
+  if (pop && pop.classList.contains('show')) { closePops(); return; }
+  openPop(id, anchorId);
 }
 
 document.addEventListener('click', (e) => {
@@ -1680,9 +1771,9 @@ document.addEventListener('click', (e) => {
   closePops();
 });
 
-document.getElementById('btnShapes').onclick = (e) => { e.stopPropagation(); openPop('shapePop', 'btnShapes'); };
-document.getElementById('btnPages').onclick = (e) => { e.stopPropagation(); renderPageGrid(); openPop('pagePop', 'btnPages'); };
-document.getElementById('btnFiles').onclick = (e) => { e.stopPropagation(); openPop('filePop', 'btnFiles'); };
+document.getElementById('btnShapes').onclick = (e) => { e.stopPropagation(); togglePop('shapePop', 'btnShapes'); };
+document.getElementById('btnPages').onclick = (e) => { e.stopPropagation(); renderPageGrid(); togglePop('pagePop', 'btnPages'); };
+document.getElementById('btnFiles').onclick = (e) => { e.stopPropagation(); togglePop('filePop', 'btnFiles'); };
 document.getElementById('btnImage').onclick = () => document.getElementById('fileImage').click();
 document.getElementById('btnBoard').onclick = insertBlackboard;
 
@@ -1943,7 +2034,7 @@ function init() {
   refreshSizeDots();
   renderPageGrid();
   resize();
-  setTool('pen');
+  setTool('pen', { silent: true });   // silent：启动时不要把笔设置窗弹出来
   syncButtons();
 
   try {
@@ -1960,9 +2051,8 @@ function init() {
   };
 
   window.addEventListener('resize', resize);
-  window.addEventListener('beforeunload', (e) => {
-    if (state.dirty) { e.preventDefault(); e.returnValue = ''; }
-  });
+  // 不再注册 beforeunload：内容每 400ms 就自动存本地了，
+  // 而 WebView2 里的 beforeunload 确认框是模态的，会把窗口卡成"未响应"。
 }
 
 init();
@@ -1972,6 +2062,9 @@ window.__whiteboard = {
   exportPng, saveProject, openProject,
   // 外部（脚本 / 自检）直接改了 state 之后，调这个让静态层重画
   invalidate: () => { cacheDirty = true; requestRender(); },
+  // 渲染统计：查卡顿时看 cacheN（静态层重建次数）和每帧耗时
+  perf: perfStats,
+  resetPerf: () => { perfStats.cacheN = 0; perfStats.cacheMs = 0; perfStats.frameN = 0; perfStats.frameMs = 0; },
   loadProject: (data) => {
     try {
       applyProject(data);

@@ -84,17 +84,42 @@ async function main() {
   check('能在画布上写字（生成 path 对象）', s.objects.length === 1 && s.objects[0].type === 'path',
     `对象：${JSON.stringify(s.objects)}`);
 
-  // ---- 5. 再点一次笔图标 → 弹出笔设置小窗 ----
-  await page.click('#btnPen');
-  await page.waitForTimeout(200);
-  await page.click('#btnPen');
-  await page.waitForTimeout(300);
-  const pop = await page.evaluate(() => {
+  // ---- 5. 笔设置小窗：启动不弹、点开、再点收起、点外面收起 ----
+  const popState = () => page.evaluate(() => {
     const p = document.getElementById('penPop');
     const r = p.getBoundingClientRect();
     return { shown: getComputedStyle(p).display !== 'none' && r.width > 60, w: r.width, h: r.height };
   });
-  check('再点笔图标弹出设置小窗', pop.shown, `${pop.w.toFixed(0)}×${pop.h.toFixed(0)}`);
+
+  const bootPop = await popState();
+  check('启动时笔设置小窗不自动弹出', !bootPop.shown);
+
+  await page.click('#btnPen');
+  await page.waitForTimeout(250);
+  const open1 = await popState();
+  check('点画笔图标弹出设置小窗', open1.shown, `${open1.w.toFixed(0)}×${open1.h.toFixed(0)}`);
+
+  await page.click('#btnPen');
+  await page.waitForTimeout(250);
+  const open2 = await popState();
+  check('再点画笔图标能收起小窗', !open2.shown);
+
+  await page.click('#btnPen');
+  await page.waitForTimeout(250);
+  const open3 = await popState();
+  check('第三次点击又能打开', open3.shown);
+
+  // 切到选择工具再点空白处：既能验证"点外面关小窗"，又不会画出多余的点
+  await page.keyboard.press('v');
+  await page.click('#board', { position: { x: 40, y: 40 } });
+  await page.waitForTimeout(250);
+  const open4 = await popState();
+  check('点画布空白处能关掉小窗', !open4.shown);
+
+  // 打开小窗，后面的颜色/粗细/笔型都在里面改
+  await page.keyboard.press('p');   // 切回画笔（此时不弹窗）
+  await page.click('#btnPen');      // 再点一次才弹
+  await page.waitForTimeout(250);
 
   // ---- 6. 小窗里换颜色和粗细 ----
   const before = await st();

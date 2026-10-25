@@ -114,6 +114,22 @@ class Api:
     def quit(self) -> None:
         os._exit(0)
 
+    # ---------- 诊断 ----------
+
+    def diag(self, msg: str) -> bool:
+        """诊断模式下由页面写执行轨迹，用于定位卡死。
+
+        直接 append 到文件：页面卡住时最后一条就是卡的位置。
+        """
+        try:
+            path = app_dir() / "diag.log"
+            too_big = path.exists() and path.stat().st_size > 2_000_000
+            with open(path, "w" if too_big else "a", encoding="utf-8") as f:
+                f.write(str(msg)[:500] + "\n")
+            return True
+        except Exception:
+            return False
+
     # ---------- 内部 ----------
 
     def _ask_save_path(self, filename: str, file_types: list[tuple[str, str]]) -> str | None:
@@ -268,16 +284,12 @@ def main() -> int:
         api.window = window
         window.events.loaded += lambda: open_file_from_args(window)
 
-        icon = resource_root() / "assets" / "app.ico"
         start_kwargs = {
             "private_mode": False,          # 关掉隐私模式，localStorage 才会留下来
             "storage_path": str(app_dir() / "webview"),
             "gui": "edgechromium",          # Win10/11 自带 WebView2
             "debug": os.environ.get("WHITEBOARD_DEBUG") == "1",
         }
-        if sys.platform == "win32":
-            start_kwargs["ssl"] = True
-
         try:
             webview.start(**start_kwargs)
         except Exception:

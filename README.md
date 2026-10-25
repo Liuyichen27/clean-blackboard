@@ -55,6 +55,19 @@
 
 实测（1440×900，Edge 内核）：600 点长笔画两帧内画完，约 **7 ms**，空闲帧率 **240 fps**。自检脚本 `build_tools/uitest.js` 里第 14、15 项就是在量这个。
 
+## 卡了怎么查
+
+程序里有两条自带的记录：
+
+- `%APPDATA%\WhiteboardDesktop\diag.log` —— 渲染超过 800ms 会自动写一行，带对象数、画布尺寸、屏幕分辨率
+- `%APPDATA%\WhiteboardDesktop\crash.log` —— 启动失败的完整堆栈
+
+想看得更细，在地址后面加 `?diag=1`（或在控制台执行 `localStorage.setItem('whiteboard.diag','1')` 后重开），
+每一次点击、重绘、提交都会记进 `diag.log`。
+
+`build_tools/liveprobe.py` 会在**真实的 WebView2 内核**里跑一遍开机和点击，直接打印面板状态和主线程心跳——
+这套东西就是为了不再靠"感觉卡不卡"来判断。
+
 ## 数据在哪
 
 全部在本地：
@@ -88,7 +101,7 @@ python build_tools/smoke.py dist/白板.exe   # 能否开、会不会假死、�
 node   build_tools/uitest.js                # 画笔/框选/工具条/小黑板/存档/导出 PNG
 ```
 
-`uitest.js` 用真实 Edge 内核跑 27 项断言，exe 里装的就是同一份 `index.html`，所以过了这套就等于过了桌面版。
+`uitest.js` 用真实 Edge 内核跑 31 项断言，exe 里装的就是同一份 `index.html`，所以过了这套就等于过了桌面版。
 
 ## 工程结构
 
@@ -100,7 +113,7 @@ whiteboard/
 └─ build_tools/
    ├─ build.py            PyInstaller 打包
    ├─ smoke.py            启动自检（窗口是否假死、是否白屏）
-   ├─ uitest.js           交互自检（27 项）
+   ├─ uitest.js           交互自检（31 项）
    └─ checkjs.js          页面脚本语法检查
 ```
 
