@@ -1,4 +1,4 @@
-"""简黑板 · 桌面外壳。
+"""CleanBlackboard - 简黑板 · 桌面外壳。
 
 用 pywebview 把 ui/index.html 装进一个原生窗口（Windows 上走 WebView2）。
 所有文件读写都通过 js_api 暴露给页面，页面自己不碰磁盘。
@@ -14,8 +14,10 @@ import sys
 import traceback
 from pathlib import Path
 
-APP_NAME = "简黑板"
-APP_EN = "Clean Blackboard"
+APP_NAME = "简黑板"                       # 中文名
+APP_EN = "Clean Blackboard"              # 完整英文名
+APP_SLUG = "CleanBlackboard"             # 英文简写：exe 文件名、标题栏前缀
+APP_TITLE = f"{APP_SLUG} - {APP_NAME}"   # 标题栏：CleanBlackboard - 简黑板
 APP_ID = "CleanBlackboard"
 LEGACY_APP_ID = "WhiteboardDesktop"
 VERSION = "1.0.0"
@@ -80,7 +82,7 @@ class Api:
         """弹出保存对话框，把 JSON 写进文件。"""
         try:
             path = self._ask_save_path(
-                suggested or f"简黑板-{self._stamp()}{PROJECT_EXT}",
+                suggested or f"{APP_SLUG}-{self._stamp()}{PROJECT_EXT}",
                 PROJECT_FILTERS,
             )
             if not path:
@@ -116,7 +118,7 @@ class Api:
                 return {"ok": False, "error": "图片数据格式不对"}
 
             path = self._ask_save_path(
-                suggested or f"简黑板-{self._stamp()}.png",
+                suggested or f"{APP_SLUG}-{self._stamp()}.png",
                 PNG_FILTERS,
             )
             if not path:
@@ -256,7 +258,7 @@ def report_crash(exc: BaseException) -> None:
         ctypes.windll.user32.MessageBoxW(
             None,
             f"启动失败：{exc}\n\n详细信息已写入：\n{log}",
-            APP_NAME,
+            APP_TITLE,
             0x10,
         )
     except Exception:
@@ -296,7 +298,7 @@ def main() -> int:
         api = Api()
         win_w, win_h, win_x, win_y = window_geometry()
         window = webview.create_window(
-            f"{APP_NAME} {VERSION}",
+            f"{APP_TITLE} {VERSION}",
             url=str(html),
             js_api=api,
             width=win_w,

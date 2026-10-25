@@ -235,7 +235,7 @@ def on_loaded() -> None:
 
 def main() -> int:
     w, h, x, y = window_geometry()
-    webview.create_window("简黑板 性能探针", url=str(HTML), width=w, height=h, x=x, y=y,
+    webview.create_window("CleanBlackboard 性能探针", url=str(HTML), width=w, height=h, x=x, y=y,
                           min_size=(880, 560), background_color="#EEF0F4")
     webview.windows[0].events.loaded += on_loaded
     webview.start(private_mode=True, gui="edgechromium", debug=False)

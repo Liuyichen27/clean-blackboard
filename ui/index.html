@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>简黑板</title>
+<title>CleanBlackboard - 简黑板</title>
 <style>
   :root {
     --bg: #eef0f4;
@@ -489,7 +489,7 @@ window.__slow = (what, ms) => {
     <div class="logo">
       <svg viewBox="0 0 24 24"><path d="M4 16c3-6 5 2 8-2s5 1 8-4"/></svg>
     </div>
-    <div class="brand">简黑板 · Clean Blackboard</div>
+    <div class="brand">CleanBlackboard · 简黑板</div>
     <h1>开始你的第一笔</h1>
     <p>右边是工具栏，点画笔再点一次可以换颜色。<br>滚轮平移、Ctrl + 滚轮缩放，图片直接拖进来。</p>
     <button id="btnStart">开始写字</button>
@@ -1512,7 +1512,7 @@ function downloadBlob(blob, name) {
 async function saveProject() {
   await NativeReady;
   const json = JSON.stringify(projectData(), null, 1);
-  const name = `简黑板-${stamp()}.wbjson`;
+  const name = `CleanBlackboard-${stamp()}.wbjson`;
   if (!native) { downloadBlob(new Blob([json], { type: 'application/json' }), name); toast('已下载工程文件'); return; }
   try {
     const r = await native.save_project(json, name);
@@ -1563,7 +1563,7 @@ function exportPng() {
   for (const o of objs) if (o.type !== 'board') renderObject(octx, o);
 
   const dataUrl = off.toDataURL('image/png');
-  const name = `简黑板-第${state.current + 1}页-${stamp()}.png`;
+  const name = `CleanBlackboard-第${state.current + 1}页-${stamp()}.png`;
 
   if (native) {
     native.save_png(dataUrl, name).then((r) => {

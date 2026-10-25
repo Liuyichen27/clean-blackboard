@@ -2,7 +2,7 @@
 
 用法：
     python build_tools/build.py
-产物：dist/简黑板.exe
+产物：dist/CleanBlackboard.exe
 """
 
 from __future__ import annotations
@@ -27,7 +27,7 @@ def main() -> int:
     if result.returncode != 0:
         return result.returncode
 
-    exe = ROOT / "dist" / "简黑板.exe"
+    exe = ROOT / "dist" / "CleanBlackboard.exe"
     if exe.exists():
         print(f"\n打包完成：{exe}")
         print(f"体积：{exe.stat().st_size / 1048576:.1f} MB")

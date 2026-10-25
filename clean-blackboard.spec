@@ -40,7 +40,7 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name="简黑板",
+    name="CleanBlackboard",
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

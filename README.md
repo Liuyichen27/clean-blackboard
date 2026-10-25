@@ -1,10 +1,10 @@
-# 简黑板 · Clean Blackboard
+# CleanBlackboard - 简黑板
 
 [![Python](https://img.shields.io/badge/python-3.9%2B-3776AB)](https://www.python.org)
 [![License](https://img.shields.io/badge/license-MIT-12B76A)](LICENSE)
 [![Size](https://img.shields.io/badge/exe-13%20MB-2F6BFF)](#)
 
-**简黑板（Clean Blackboard）** 是一个双击就能写的桌面白板：不用注册、不用登录、不联网，文件留在自己硬盘上。
+**CleanBlackboard - 简黑板** 是一个双击就能写的桌面白板：不用注册、不用登录、不联网，文件留在自己硬盘上。
 
 ![界面](assets/shot-canvas.png)
 
@@ -14,7 +14,7 @@
 
 市面上的白板要么绑账号绑云端，要么打开先弹一个登录框；好不容易进去，写两笔就卡成幻灯片。
 
-这个白板的目标很朴素：**点开 <kbd>简黑板.exe</kbd>，0.5 秒后就能写字。** 没有启动页、没有账号、没有云同步。文件留在你自己的硬盘上。
+这个白板的目标很朴素：**点开 <kbd>CleanBlackboard.exe</kbd>，0.5 秒后就能写字。** 没有启动页、没有账号、没有云同步。文件留在你自己的硬盘上。
 
 ## 上手
 
@@ -49,7 +49,7 @@
 
 这个坑踩了三次，根因很隐蔽，记在这里免得再犯。
 
-**症状**：双击打开，界面正常画出来，也能看出是白板——但点哪儿都没反应，标题栏过几秒变成「简黑板 1.0.0 (未响应)」。
+**症状**：双击打开，界面正常画出来，也能看出是白板——但点哪儿都没反应，标题栏过几秒变成「CleanBlackboard - 简黑板 1.0.0 (未响应)」。
 
 **根因**：pywebview 启动时要先把 `js_api` 对象「翻译」成 JS 接口，做法是递归遍历它的**所有公开成员**（`webview/util.py` 的 `get_functions`，没有环检测）。我为了在回调里弹文件对话框，把窗口对象存成了 `api.window`——于是这个遍历顺着 Window 走进了 pythonnet 的整个 .NET 对象图，永远走不完。主线程卡在 `create_window()` 里，窗口自然一直不响应。
 
@@ -106,14 +106,14 @@ python main.py
 ```bash
 pip install pyinstaller
 python build_tools/build.py
-# 产物：dist/简黑板.exe（单文件，约 14 MB）
+# 产物：dist/CleanBlackboard.exe（单文件，约 13 MB）
 ```
 
 打包完建议跑一遍两个自检：
 
 ```bash
 python build_tools/apitest.py               # 接口形状（防「启动即假死」复发）+ 存读往返
-python build_tools/smoke.py dist/简黑板.exe   # 能否开、7 秒后会不会假死、界面画出来没有
+python build_tools/smoke.py dist/CleanBlackboard.exe   # 能否开、7 秒后会不会假死、界面画出来没有
 node   build_tools/uitest.js                # 画笔/框选/工具条/小黑板/存档/导出 PNG
 ```
 
