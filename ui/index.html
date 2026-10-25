@@ -1970,6 +1970,8 @@ init();
 window.__whiteboard = {
   state,
   exportPng, saveProject, openProject,
+  // 外部（脚本 / 自检）直接改了 state 之后，调这个让静态层重画
+  invalidate: () => { cacheDirty = true; requestRender(); },
   loadProject: (data) => {
     try {
       applyProject(data);
