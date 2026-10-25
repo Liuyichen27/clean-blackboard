@@ -1,4 +1,4 @@
-"""白板 · 桌面外壳。
+"""简黑板 · 桌面外壳。
 
 用 pywebview 把 ui/index.html 装进一个原生窗口（Windows 上走 WebView2）。
 所有文件读写都通过 js_api 暴露给页面，页面自己不碰磁盘。
@@ -14,8 +14,10 @@ import sys
 import traceback
 from pathlib import Path
 
-APP_NAME = "白板"
-APP_ID = "WhiteboardDesktop"
+APP_NAME = "简黑板"
+APP_EN = "Clean Blackboard"
+APP_ID = "CleanBlackboard"
+LEGACY_APP_ID = "WhiteboardDesktop"
 VERSION = "1.0.0"
 
 PROJECT_EXT = ".wbjson"
@@ -23,7 +25,7 @@ PROJECT_EXT = ".wbjson"
 # 早先写成 [("说明", "*.ext")] 这种列表套元组，每次保存都会抛
 # TypeError: expected string or bytes-like object, got 'tuple' —— 直接导致存不了文件。
 PROJECT_FILTERS = (
-    f"白板工程 (*{PROJECT_EXT})",
+    f"简黑板工程 (*{PROJECT_EXT})",
     "JSON 文件 (*.json)",
     "所有文件 (*.*)",
 )
@@ -39,9 +41,16 @@ def resource_root() -> Path:
 
 
 def app_dir() -> Path:
-    """用户数据目录：%APPDATA%\\WhiteboardDesktop。"""
-    base = os.environ.get("APPDATA") or str(Path.home())
-    d = Path(base) / APP_ID
+    """用户数据目录：%APPDATA%\\CleanBlackboard。"""
+    base = Path(os.environ.get("APPDATA") or str(Path.home()))
+    d = base / APP_ID
+    old = base / LEGACY_APP_ID
+    # 改名前叫 WhiteboardDesktop，老用户的草稿一并搬过来
+    if not d.exists() and old.exists():
+        try:
+            old.rename(d)
+        except Exception:
+            pass
     d.mkdir(parents=True, exist_ok=True)
     return d
 
@@ -71,7 +80,7 @@ class Api:
         """弹出保存对话框，把 JSON 写进文件。"""
         try:
             path = self._ask_save_path(
-                suggested or f"白板-{self._stamp()}{PROJECT_EXT}",
+                suggested or f"简黑板-{self._stamp()}{PROJECT_EXT}",
                 PROJECT_FILTERS,
             )
             if not path:
@@ -107,7 +116,7 @@ class Api:
                 return {"ok": False, "error": "图片数据格式不对"}
 
             path = self._ask_save_path(
-                suggested or f"白板-{self._stamp()}.png",
+                suggested or f"简黑板-{self._stamp()}.png",
                 PNG_FILTERS,
             )
             if not path:

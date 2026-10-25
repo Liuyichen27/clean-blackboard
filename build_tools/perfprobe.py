@@ -1,7 +1,7 @@
 """量渲染开销：放 300 笔迹上去，看拖动/平移/写字时每帧要多久。
 
 跑法：python build_tools/perfprobe.py
-结果同时写 %APPDATA%\\WhiteboardDesktop\\perf.txt
+结果同时写 %APPDATA%\\CleanBlackboard\\perf.txt
 """
 
 from __future__ import annotations
@@ -235,7 +235,7 @@ def on_loaded() -> None:
 
 def main() -> int:
     w, h, x, y = window_geometry()
-    webview.create_window("白板 性能探针", url=str(HTML), width=w, height=h, x=x, y=y,
+    webview.create_window("简黑板 性能探针", url=str(HTML), width=w, height=h, x=x, y=y,
                           min_size=(880, 560), background_color="#EEF0F4")
     webview.windows[0].events.loaded += on_loaded
     webview.start(private_mode=True, gui="edgechromium", debug=False)

@@ -1,10 +1,10 @@
 """打包后自检：启动 exe，等它画出界面，再确认窗口不假死。
 
 跑法（用打包环境里的 Python）：
-    python build_tools/smoke.py dist/白板.exe
+    python build_tools/smoke.py dist/简黑板.exe
 
 判断依据：
-  1. 能枚举到窗口，且标题里有「白板」
+  1. 能枚举到窗口，且标题里有「简黑板」
   2. IsHungAppWindow 为假（Windows 对无响应的窗口会置这个标记）
   3. 窗口截图不是一片纯色（说明界面真画出来了，不是白屏）
   4. 没有生成 crash.log
@@ -23,7 +23,7 @@ from pathlib import Path
 user32 = ctypes.windll.user32
 gdi32 = ctypes.windll.gdi32
 
-APP_ID = "WhiteboardDesktop"
+APP_ID = "CleanBlackboard"
 
 
 def crash_log() -> Path:
@@ -126,7 +126,7 @@ def color_stats(hwnd: int) -> tuple[int, int, int]:
 
 
 def main() -> int:
-    exe = Path(sys.argv[1] if len(sys.argv) > 1 else "dist/白板.exe").resolve()
+    exe = Path(sys.argv[1] if len(sys.argv) > 1 else "dist/简黑板.exe").resolve()
     if not exe.exists():
         print(f"找不到 {exe}")
         return 2
@@ -137,7 +137,7 @@ def main() -> int:
     print(f"启动 {exe.name} ...")
     proc = subprocess.Popen([str(exe)], cwd=str(exe.parent))
     try:
-        hwnd = find_window("白板")
+        hwnd = find_window("简黑板")
         if not hwnd:
             print("✗ 没等到窗口")
             return 1

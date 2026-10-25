@@ -2,7 +2,7 @@
 
 用法：
     python build_tools/build.py
-产物：dist/白板.exe
+产物：dist/简黑板.exe
 """
 
 from __future__ import annotations
@@ -16,9 +16,9 @@ ROOT = Path(__file__).resolve().parents[1]
 
 
 def main() -> int:
-    spec = ROOT / "whiteboard.spec"
+    spec = ROOT / "clean-blackboard.spec"
     if not spec.exists():
-        print("找不到 whiteboard.spec")
+        print("找不到 clean-blackboard.spec")
         return 1
 
     cmd = [sys.executable, "-m", "PyInstaller", str(spec), "--noconfirm"]
@@ -27,7 +27,7 @@ def main() -> int:
     if result.returncode != 0:
         return result.returncode
 
-    exe = ROOT / "dist" / "白板.exe"
+    exe = ROOT / "dist" / "简黑板.exe"
     if exe.exists():
         print(f"\n打包完成：{exe}")
         print(f"体积：{exe.stat().st_size / 1048576:.1f} MB")
