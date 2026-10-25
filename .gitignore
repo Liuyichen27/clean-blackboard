@@ -1,0 +1,13 @@
+.venv/
+.buildenv/
+__pycache__/
+*.pyc
+build/
+dist/
+*.egg-info/
+.pytest_cache/
+
+# 自检产物
+build_tools/_uitest.png
+build_tools/_shot.png
+_demo*
