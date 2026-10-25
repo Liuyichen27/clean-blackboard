@@ -143,15 +143,19 @@ def main() -> int:
             return 1
         print(f"✓ 窗口已出现 hwnd={hwnd}")
 
-        # 给它时间把界面画完
-        time.sleep(3)
+        # Windows 要等 UI 线程 5 秒没抽消息才打「未响应」标记，
+        # 所以这里必须等够 7 秒再采样，早采样会把假死漏过去。
+        print("  · 等 7 秒（跨过 Windows 的假死判定阈值）")
+        time.sleep(7)
 
-        states = [hung(hwnd) for _ in range(6)]
-        time.sleep(0.4)
+        states = []
+        for _ in range(8):
+            states.append(hung(hwnd))
+            time.sleep(0.4)
         if any(states):
             print(f"✗ 窗口假死（IsHungAppWindow 采样 {states}）")
             return 1
-        print("✓ 窗口响应正常（连续 6 次采样均未假死）")
+        print("✓ 窗口响应正常（连续 8 次采样均未假死）")
 
         colors, pixels, dark = color_stats(hwnd)
         print(f"✓ 截图分析：{colors} 种颜色 / {pixels} 像素 / 深色 {dark:.1f}%")

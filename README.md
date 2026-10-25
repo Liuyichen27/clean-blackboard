@@ -47,13 +47,28 @@
 
 ## 关于「未响应」
 
-之前那版一写长笔画就会白屏卡住几秒，Windows 直接打上"未响应"。原因和修法：
+这个坑踩了三次，根因很隐蔽，记在这里免得再犯。
 
-1. **每帧重画全部内容** —— 1000 个对象，每帧都要重算 1000 遍。改成两块画布：已完成的内容画进离屏缓存（`cache` canvas），每帧只 `drawImage` 贴一次，只有正在写的那一笔是实时画的。
-2. **每个点都单独 `stroke()`** —— 一笔 600 个点就是 600 次绘制调用，GPU 直接被拖死。改成按笔宽分组建路径，一次 `stroke()` 画完整笔。
-3. **每个 pointermove 都直接重绘** —— 高刷屏一秒来 240 个事件，重绘次数是帧率的几倍。改成 `requestAnimationFrame` 合并，一帧最多画一次。
+**症状**：双击打开，界面正常画出来，也能看出是白板——但点哪儿都没反应，标题栏过几秒变成「白板 1.0.0 (未响应)」。
 
-实测（1440×900，Edge 内核）：600 点长笔画两帧内画完，约 **7 ms**，空闲帧率 **240 fps**。自检脚本 `build_tools/uitest.js` 里第 14、15 项就是在量这个。
+**根因**：pywebview 启动时要先把 `js_api` 对象「翻译」成 JS 接口，做法是递归遍历它的**所有公开成员**（`webview/util.py` 的 `get_functions`，没有环检测）。我为了在回调里弹文件对话框，把窗口对象存成了 `api.window`——于是这个遍历顺着 Window 走进了 pythonnet 的整个 .NET 对象图，永远走不完。主线程卡在 `create_window()` 里，窗口自然一直不响应。
+
+而页面本身跑在 WebView2 的渲染进程里，是另一个进程，所以**画面照样画出来**——这就是为什么「看起来是好的，一用就死」。
+
+**修法**：
+1. 窗口引用改成私有 `api._window`（下划线开头会被跳过）；
+2. 给 `Api` 加 `__dir__`，只返回公开**方法**，属性一个都不暴露——双保险；
+3. 自检脚本 `build_tools/apitest.py` 把这条约束固化成断言，`smoke.py` 则把「假死」的判定阈值改成等 7 秒（Windows 要 5 秒才打标记，早测会漏）。
+
+顺带修掉的另一个真 bug：`create_file_dialog` 的 `file_types` 必须是「字符串元组」，我原来传了 `[("说明", "*.ext")]` 这种列表套元组，**每次保存/打开都直接抛 `TypeError`**——也就是说之前根本存不了文件。
+
+渲染层面的优化（仍然是现在的实现）：
+
+1. **每帧重画全部内容** → 已完成内容画进离屏缓存，每帧只 `drawImage` 贴一次；
+2. **每个点单独 `stroke()`** → 按笔宽分组建路径，一笔一次画完；
+3. **每个 pointermove 都直接重绘** → `requestAnimationFrame` 合并，一帧最多画一次。
+
+实测（1440×900，Edge 内核）：600 点长笔画 **6~9 ms** 画完，空闲帧率 **240 fps**。
 
 ## 卡了怎么查
 
@@ -97,7 +112,8 @@ python build_tools/build.py
 打包完建议跑一遍两个自检：
 
 ```bash
-python build_tools/smoke.py dist/白板.exe   # 能否开、会不会假死、界面画出来没有
+python build_tools/apitest.py               # 接口形状（防「启动即假死」复发）+ 存读往返
+python build_tools/smoke.py dist/白板.exe   # 能否开、7 秒后会不会假死、界面画出来没有
 node   build_tools/uitest.js                # 画笔/框选/工具条/小黑板/存档/导出 PNG
 ```
 
@@ -112,8 +128,11 @@ whiteboard/
 ├─ assets/                图标
 └─ build_tools/
    ├─ build.py            PyInstaller 打包
-   ├─ smoke.py            启动自检（窗口是否假死、是否白屏）
+   ├─ apitest.py          接口自检（18 项，含「启动即假死」的回归）
+   ├─ smoke.py            启动自检（等 7 秒再看是否假死、是否白屏）
    ├─ uitest.js           交互自检（31 项）
+   ├─ liveprobe.py        在真实 WebView2 内核里跑一遍开机和点击
+   ├─ perfprobe.py        帧耗时（塞 300 笔迹再量）
    └─ checkjs.js          页面脚本语法检查
 ```
 

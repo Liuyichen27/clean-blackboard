@@ -19,6 +19,15 @@ APP_ID = "WhiteboardDesktop"
 VERSION = "1.0.0"
 
 PROJECT_EXT = ".wbjson"
+# pywebview 的 file_types 要求「字符串元组」，格式是 "说明 (*.ext;*.ext2)"。
+# 早先写成 [("说明", "*.ext")] 这种列表套元组，每次保存都会抛
+# TypeError: expected string or bytes-like object, got 'tuple' —— 直接导致存不了文件。
+PROJECT_FILTERS = (
+    f"白板工程 (*{PROJECT_EXT})",
+    "JSON 文件 (*.json)",
+    "所有文件 (*.*)",
+)
+PNG_FILTERS = ("PNG 图片 (*.png)",)
 PNG_PREFIX = "data:image/png;base64,"
 
 
@@ -38,10 +47,23 @@ def app_dir() -> Path:
 
 
 class Api:
-    """暴露给页面 JS 的原生能力。"""
+    """暴露给页面 JS 的原生能力。
+
+    ⚠️ 这里**绝对不能**放公开的属性（尤其是 window）。
+    pywebview 启动时会把本对象"翻译"成 JS 接口，做法是递归遍历所有公开成员
+    （webview/util.py 的 get_functions）且没有环检测。一旦挂上 Window，
+    就会顺着它走进 pythonnet 的整个 .NET 对象图，永远遍历不完 ——
+    主线程卡在 create_window 里，窗口被 Windows 判为「未响应」。
+    所有对 window 的引用一律用下划线开头（会被跳过），并靠 __dir__ 再兜一层。
+    """
 
     def __init__(self) -> None:
-        self.window = None
+        self._window = None
+
+    def __dir__(self):
+        # 只把公开方法暴露出去，属性一个都不给
+        return [n for n in super().__dir__()
+                if not n.startswith('_') and callable(getattr(self, n, None))]
 
     # ---------- 工程文件 ----------
 
@@ -50,8 +72,7 @@ class Api:
         try:
             path = self._ask_save_path(
                 suggested or f"白板-{self._stamp()}{PROJECT_EXT}",
-                [(f"白板工程 (*{PROJECT_EXT})", f"*{PROJECT_EXT}"),
-                 ("JSON 文件 (*.json)", "*.json")],
+                PROJECT_FILTERS,
             )
             if not path:
                 return {"ok": False, "cancel": True}
@@ -67,10 +88,7 @@ class Api:
     def open_project(self) -> dict:
         """弹出打开对话框，把文件内容读出来交给页面。"""
         try:
-            path = self._ask_open_path(
-                [(f"白板工程 (*{PROJECT_EXT})", f"*{PROJECT_EXT}"),
-                 ("JSON 文件 (*.json)", "*.json")],
-            )
+            path = self._ask_open_path(PROJECT_FILTERS)
             if not path:
                 return {"ok": False, "cancel": True}
 
@@ -90,7 +108,7 @@ class Api:
 
             path = self._ask_save_path(
                 suggested or f"白板-{self._stamp()}.png",
-                [("PNG 图片 (*.png)", "*.png")],
+                PNG_FILTERS,
             )
             if not path:
                 return {"ok": False, "cancel": True}
@@ -132,22 +150,22 @@ class Api:
 
     # ---------- 内部 ----------
 
-    def _ask_save_path(self, filename: str, file_types: list[tuple[str, str]]) -> str | None:
-        import webview
+    def _ask_save_path(self, filename: str, file_types: tuple[str, ...]) -> str | None:
+        from webview import FileDialog
 
-        result = self.window.create_file_dialog(
-            webview.SAVE_DIALOG,
+        result = self._window.create_file_dialog(
+            FileDialog.SAVE,
             directory=str(Path.home() / "Documents"),
             save_filename=filename,
             file_types=file_types,
         )
         return self._first(result)
 
-    def _ask_open_path(self, file_types: list[tuple[str, str]]) -> str | None:
-        import webview
+    def _ask_open_path(self, file_types: tuple[str, ...]) -> str | None:
+        from webview import FileDialog
 
-        result = self.window.create_file_dialog(
-            webview.OPEN_DIALOG,
+        result = self._window.create_file_dialog(
+            FileDialog.OPEN,
             allow_multiple=False,
             directory=str(Path.home() / "Documents"),
             file_types=file_types,
@@ -281,7 +299,7 @@ def main() -> int:
             text_select=False,
             confirm_close=False,
         )
-        api.window = window
+        api._window = window
         window.events.loaded += lambda: open_file_from_args(window)
 
         start_kwargs = {
