@@ -148,6 +148,21 @@ async function main() {
   const after = await st();
   check('小窗能改颜色', after.color !== before.color, `${before.color} → ${after.color}`);
   check('小窗能改粗细', after.size !== before.size, `${before.size} → ${after.size}`);
+  check('小窗里有吸管按钮',
+    await page.evaluate(() => !!document.getElementById('penPick')));
+  check('吸管按钮可见',
+    await page.isVisible('#penPick'));
+  // 走「吸管取到色之后」的同一条路：改原生取色器的值并触发 input
+  await page.evaluate(() => {
+    const p = document.getElementById('colorPicker');
+    p.value = '#12ab34';
+    p.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  await page.waitForTimeout(150);
+  const penPicked = await page.evaluate(() => window.__whiteboard.state.color);
+  check('取色能设成画笔颜色', penPicked === '#12ab34', penPicked);
+  check('取色后原生取色器同步',
+    (await page.evaluate(() => document.getElementById('colorPicker').value)) === '#12ab34');
 
   // ---- 7. 三种笔型 ----
   await page.click('.pen-tab[data-pen="marker"]');
@@ -785,6 +800,9 @@ async function main() {
   check('框选项高亮',
     await page.evaluate(() =>
       document.querySelector('#selectPop [data-selmode="marquee"]').classList.contains('on')));
+  check('开关在左侧（框选）',
+    (await page.evaluate(() =>
+      document.getElementById('selSwitch').classList.contains('on'))) === false);
 
   // 框选：拖一个矩形，应该选中框里的笔画
   await page.click('#board', { position: { x: 20, y: 20 } });
@@ -802,6 +820,13 @@ async function main() {
   await page.click('#selectPop [data-selmode="free"]');
   await page.waitForTimeout(250);
   check('能切到点选', (await modeNow()) === 'free', await modeNow());
+  check('开关滑到右侧（点选）',
+    await page.evaluate(() => document.getElementById('selSwitch').classList.contains('on')));
+  check('切换后面板不关（和纸张开关一样）',
+    await page.evaluate(() => document.getElementById('selectPop').classList.contains('show')));
+  check('点选标签高亮',
+    await page.evaluate(() =>
+      document.querySelector('#selectPop [data-selmode="free"]').classList.contains('on')));
   check('点选记在 localStorage',
     (await page.evaluate(() => localStorage.getItem('whiteboard.selmode'))) === 'free');
   check('选择图标上有标记',

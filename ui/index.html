@@ -334,24 +334,22 @@
     font-size: 12px; color: #8c97a9;
   }
   .pen-foot input { width: 26px; height: 22px; border: 0; padding: 0; background: none; cursor: pointer; }
-
-  /* --- 选择方式（深色，和笔一致） --- */
-  #selectPop { width: 274px; padding: 12px; }
-  .selmode {
-    display: flex; gap: 10px; align-items: flex-start; width: 100%;
-    padding: 10px; margin-bottom: 6px; border: 1px solid transparent;
-    border-radius: 11px; background: rgba(255,255,255,.045);
-    color: #c9d2e1; text-align: left; cursor: pointer; font-family: inherit;
-    transition: background .14s, border-color .14s;
+  .pen-foot-right { display: flex; align-items: center; gap: 8px; }
+  .pen-pick {
+    width: 26px; height: 26px; border-radius: 8px; display: flex;
+    align-items: center; justify-content: center; cursor: pointer;
+    background: rgba(255,255,255,.07); border: 1px solid rgba(255,255,255,.14);
+    color: #dbe3f0; padding: 0; transition: background .15s, border-color .15s;
   }
-  .selmode:hover { background: rgba(255,255,255,.09); }
-  .selmode.on { border-color: #3d6ef7; background: rgba(61,110,247,.18); }
-  .selmode svg { width: 20px; height: 20px; flex: 0 0 auto; margin-top: 1px;
-                 stroke: currentColor; fill: none; stroke-width: 1.6;
-                 stroke-linecap: round; stroke-linejoin: round; }
-  .selmode b { display: block; font-size: 12.5px; color: #fff; font-weight: 600; }
-  .selmode i { display: block; font-style: normal; font-size: 10.8px; color: #8c97a9;
-               margin-top: 2px; line-height: 1.5; }
+  .pen-pick:hover { background: rgba(255,255,255,.14); border-color: rgba(255,255,255,.24); }
+  .pen-pick svg { width: 15px; height: 15px; stroke: currentColor; fill: none;
+                  stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; }
+
+  /* --- 选择方式（浅色浮窗，和纸张切换一致） --- */
+  #selectPop { width: 236px; padding: 13px 14px 12px; }
+  #selectPop h5 { margin-bottom: 10px; }
+  #selectPop .cp-note { margin-top: 10px; }
+  #selSwitch .lab { font-size: 12.5px; }
 
   /* --- 改颜色面板 --- */
   #colorPop { width: 252px; padding: 12px; }
@@ -686,8 +684,13 @@ window.__slow = (what, ms) => {
     <div class="pen-colors" id="penColors"></div>
   </div>
   <div class="pen-foot">
-    <span id="customColorLab">自定义颜色</span>
-    <input type="color" id="colorPicker" value="#1f2937">
+    <span id="customColorLab">吸管 / 自定义</span>
+    <div class="pen-foot-right">
+      <button id="penPick" class="pen-pick" title="吸管：取屏幕上的颜色">
+        <svg viewBox="0 0 24 24"><path d="M16.4 3.6a2.1 2.1 0 013 3l-1.9 1.9-3-3z"/><path d="M14.5 8.5l-8.2 8.2V20h3.3l8.2-8.2z"/></svg>
+      </button>
+      <input type="color" id="colorPicker" value="#1f2937">
+    </div>
   </div>
 </div>
 
@@ -704,18 +707,15 @@ window.__slow = (what, ms) => {
   <p class="slidehint" id="eraseNote">所有页一起清空，滑到底才生效，松手前都不算。清完还能 Ctrl+Z 撤销。</p>
 </div>
 
-<!-- ============ 选择方式：框选 / 点选 ============ -->
-<div class="pop dark" id="selectPop">
+<!-- ============ 选择方式：框选 / 点选（滑动开关，和纸张切换同款） ============ -->
+<div class="pop light" id="selectPop">
   <h5 id="selModeTitle">选择方式</h5>
-  <button class="selmode on" data-selmode="marquee">
-    <svg viewBox="0 0 24 24"><path d="M4 8V5h3"/><path d="M17 5h3v3"/><path d="M20 17v2h-3"/><path d="M7 19H4v-3"/><path d="M9 12h6"/></svg>
-    <span><b id="smMarquee">框选</b><i id="smMarqueeHint">拖出矩形，框住的东西一起选中</i></span>
-  </button>
-  <button class="selmode" data-selmode="free">
-    <svg viewBox="0 0 24 24"><path d="M4 15c3-6 5 2 8-2s4 1 5-1"/><circle cx="18.5" cy="17.5" r="2.4"/></svg>
-    <span><b id="smFree">点选</b><i id="smFreeHint">点哪根笔迹 / 哪段文字就选哪个</i></span>
-  </button>
-  <p class="cp-note" id="selModeNote">按住 Shift 可以多选；选中后浮出工具条，颜色也能改。</p>
+  <div class="switch" id="selSwitch">
+    <div class="knob"></div>
+    <div class="lab l on" data-selmode="marquee">框选</div>
+    <div class="lab r" data-selmode="free">点选</div>
+  </div>
+  <p class="cp-note" id="selModeNote">框选：拉一个框，框住的东西一起选中。点选：点哪根笔迹 / 哪段文字就选哪个，点空白不拉框。切完就不用管了，下次打开还是这个。</p>
 </div>
 
 <!-- ============ 改颜色 ============ -->
@@ -960,7 +960,7 @@ const I18N = {
     'ui.shapeTitle': '形状', 'ui.themeTitle': '纸张',
     'ui.pageTitle': '页面', 'ui.fileTitle': '文件',
     'ui.pen': '笔', 'ui.marker': '荧光笔', 'ui.brush': '书法笔',
-    'ui.customColor': '自定义颜色',
+    'ui.customColor': '吸管 / 自定义',
     'ui.paperWhite': '白板', 'ui.paperBlack': '黑板',
     'ui.lang': '语言',
     'ui.dropzone': '松手即可插入图片',
@@ -972,7 +972,7 @@ const I18N = {
     'ui.selMarqueeHint': '拖出矩形，框住的东西一起选中',
     'ui.selFree': '点选',
     'ui.selFreeHint': '点哪根笔迹 / 哪段文字就选哪个',
-    'ui.selNote': '按住 Shift 可以多选；选中后浮出工具条，颜色也能改。',
+    'ui.selNote': '框选：拉一个框，框住的东西一起选中。点选：点哪根笔迹 / 哪段文字就选哪个，点空白不拉框。切换后下次打开还是这个。',
     'ui.colorTitle': '改颜色',
     'ui.colorNote': '改的是选中的对象，不动画笔颜色。',
     'ui.eyedropper': '吸管：取屏幕上的颜色',
@@ -1066,7 +1066,7 @@ const I18N = {
     'ui.shapeTitle': 'Shapes', 'ui.themeTitle': 'Paper',
     'ui.pageTitle': 'Pages', 'ui.fileTitle': 'File',
     'ui.pen': 'Pen', 'ui.marker': 'Highlighter', 'ui.brush': 'Brush',
-    'ui.customColor': 'Custom color',
+    'ui.customColor': 'Eyedropper / custom',
     'ui.paperWhite': 'White', 'ui.paperBlack': 'Black',
     'ui.lang': 'Language',
     'ui.dropzone': 'Drop to insert the image',
@@ -1078,7 +1078,7 @@ const I18N = {
     'ui.selMarqueeHint': 'Drag a rectangle and grab everything inside',
     'ui.selFree': 'Click select',
     'ui.selFreeHint': 'Click a stroke or a text block to pick just that one',
-    'ui.selNote': 'Hold Shift to pick several. The toolbar appears once something is selected.',
+    'ui.selNote': 'Box: drag a rectangle to grab everything inside. Click: tap one stroke or text block to pick just that one — empty space starts no box. Your choice sticks next time.',
     'ui.colorTitle': 'Change color',
     'ui.colorNote': 'Applies to the selected objects, not to the pen.',
     'ui.eyedropper': 'Eyedropper: pick a color from the screen',
@@ -1211,10 +1211,9 @@ function applyLang() {
   txt('shareTitle', 'share.title');
   txt('shareDesc', 'share.desc');
   txt('selModeTitle', 'ui.selTitle');
-  txt('smMarquee', 'ui.selMarquee');
-  txt('smMarqueeHint', 'ui.selMarqueeHint');
-  txt('smFree', 'ui.selFree');
-  txt('smFreeHint', 'ui.selFreeHint');
+  document.querySelectorAll('#selSwitch .lab').forEach((lab) => {
+    lab.textContent = T(lab.dataset.selmode === 'free' ? 'ui.selFree' : 'ui.selMarquee');
+  });
   txt('selModeNote', 'ui.selNote');
   txt('cpPickLbl', 'ui.eyedropper');
   txt('cpNote', 'ui.colorNote');
@@ -2992,14 +2991,32 @@ function buildPenPanel() {
     };
   });
 
-  document.getElementById('colorPicker').oninput = (e) => {
-    state.color = e.target.value;
-    document.querySelectorAll('.pc').forEach(x => x.classList.remove('active'));
-    refreshSizeDots();
-    refreshColorDot();
-    applyToSelection('color', state.color);
-  };
+  document.getElementById('colorPicker').oninput = (e) => setPenColor(e.target.value);
 }
+
+/* 设置画笔颜色：常用色、原生取色器、吸管都走这一个入口，
+   顺带把「选中对象」的颜色也一起改（有选中时）。 */
+function setPenColor(hex) {
+  state.color = hex;
+  const picker = document.getElementById('colorPicker');
+  if (picker) picker.value = hex;
+  document.querySelectorAll('.pc').forEach(x => x.classList.remove('active'));
+  refreshSizeDots();
+  refreshColorDot();
+  applyToSelection('color', hex);
+}
+
+// 吸管：吸屏幕上任意位置的颜色当画笔色（Chromium 95+ 才有 EyeDropper）
+document.getElementById('penPick').onclick = async (e) => {
+  e.stopPropagation();
+  if (!window.EyeDropper) { toast(T('ui.eyedropperNo')); return; }
+  try {
+    const res = await new window.EyeDropper().open();
+    if (res && res.sRGBHex) setPenColor(res.sRGBHex.toLowerCase());
+  } catch (err) {
+    // 按 Esc 取消会 reject，不用提示
+  }
+};
 
 function refreshSizeDots() {
   document.querySelectorAll('.psize').forEach(b => {
@@ -3102,6 +3119,9 @@ function loadSelMode() {
 }
 
 function paintSelMode() {
+  const free = state.selMode === 'free';
+  const sw = document.getElementById('selSwitch');
+  if (sw) sw.classList.toggle('on', free);
   document.querySelectorAll('#selectPop [data-selmode]').forEach((b) => {
     b.classList.toggle('on', b.dataset.selmode === state.selMode);
   });
@@ -3111,7 +3131,9 @@ function paintSelMode() {
 }
 
 function setSelMode(mode) {
-  state.selMode = mode === 'free' ? 'free' : 'marquee';
+  const next = mode === 'free' ? 'free' : 'marquee';
+  if (next === state.selMode) { paintSelMode(); return; }
+  state.selMode = next;
   try { localStorage.setItem(SELMODE_KEY, state.selMode); } catch (e) { /* 忽略 */ }
   paintSelMode();
   canvas.classList.toggle('is-free-select', state.selMode === 'free');
@@ -3119,13 +3141,18 @@ function setSelMode(mode) {
         + ' · ' + T(state.selMode === 'free' ? 'ui.selFreeHint' : 'ui.selMarqueeHint'));
 }
 
-document.querySelectorAll('#selectPop [data-selmode]').forEach((b) => {
-  b.onclick = (e) => {
-    e.stopPropagation();
-    setSelMode(b.dataset.selmode);
-    closePops();
-  };
-});
+/* 点标签切到那一档，点滑块空白处就反向切 —— 和纸张黑白开关一个手感，切完面板不关 */
+{
+  const selSwitch = document.getElementById('selSwitch');
+  if (selSwitch) {
+    selSwitch.onclick = (e) => {
+      e.stopPropagation();
+      const lab = e.target.closest('[data-selmode]');
+      setSelMode(lab ? lab.dataset.selmode
+                     : (state.selMode === 'free' ? 'marquee' : 'free'));
+    };
+  }
+}
 
 /* =========================================================
    18.7 改颜色：常用色 / 大色块 / RGB / 吸管
