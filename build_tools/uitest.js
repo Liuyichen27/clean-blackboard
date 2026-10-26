@@ -588,6 +588,21 @@ async function main() {
   check('两行兜底链接都在', /手动下载/.test(upd.manual) && /安装器/.test(upd.installer),
     `${upd.manual} | ${upd.installer}`);
   check('有取消和更新两个按钮', upd.btns.join('/') === '以后再说/立即更新', upd.btns.join('/'));
+
+  // ---- 23.1 更新弹窗里要显示更新内容（剥掉 Markdown 符号） ----
+  const notesShown = await page.evaluate(() => {
+    window.__whiteboard.showUpdate({
+      current: '1.0.0', latest: '9.9.9', date: '2026-10-25',
+      notes: '**笔**：三档笔\n**选**：框选 / 点选\n- `Ctrl+Z` 能撤销\n---\n**下载说明**：解压后看使用说明',
+    });
+    const el = document.getElementById('updateNote');
+    return { text: el.textContent, lines: el.textContent.split('\n').length };
+  });
+  check('更新框显示更新内容', /三档笔/.test(notesShown.text), notesShown.text.slice(0, 60));
+  check('更新内容剥掉了 Markdown 符号', !/\*\*|`/.test(notesShown.text), notesShown.text.slice(0, 60));
+  check('更新内容不超过 4 行', notesShown.lines <= 4, String(notesShown.lines));
+  check('更新内容不带「下载说明」尾巴',
+    !/下载说明/.test(notesShown.text), notesShown.text.slice(-30));
   await page.click('#updateLater');
   check('点以后再说能关掉更新框',
     !(await page.evaluate(() => document.getElementById('updateWrap').classList.contains('show'))));

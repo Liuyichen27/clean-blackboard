@@ -26,7 +26,7 @@ APP_SLUG = "CleanBlackboard"             # 英文简写：exe 文件名、标题
 APP_TITLE = f"{APP_SLUG} - {APP_NAME}"   # 标题栏：CleanBlackboard - 简黑板
 APP_ID = "CleanBlackboard"
 LEGACY_APP_ID = "WhiteboardDesktop"
-VERSION = "1.2.0"
+VERSION = "1.2.1"
 
 # ---------- 更新检查 ----------
 REPO = "Liuyichen27/clean-blackboard"          # 本项目
@@ -274,6 +274,7 @@ def check_update() -> dict:
         "current": cur,
         "latest": info["version"],
         "date": info["date"],
+        "notes": info.get("notes") or "",
         "has_update": has,
         "page": info["page"],
         "asset_url": info["assets"].get(EXE_ASSET) or "",

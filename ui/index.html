@@ -222,7 +222,8 @@
     background: var(--soft); color: var(--ink); font-size: 12px; cursor: pointer;
   }
   #updateCard button.primary { background: var(--brand); border-color: var(--brand); color: #fff; }
-  #updateNote { margin-top: 10px; font-size: 12px; color: var(--muted); min-height: 16px; }
+  #updateNote { margin-top: 10px; font-size: 12px; color: var(--muted); min-height: 16px;
+                white-space: pre-line; line-height: 1.6; max-height: 6.6em; overflow: hidden; }
 
   /* --- 橡皮再点一次：滑到底才清空（防手滑） --- */
   #eraserPop { width: 300px; padding: 14px 14px 12px; }
@@ -3592,6 +3593,22 @@ function setUpdateNote(text) {
   if (el) el.textContent = text || '';
 }
 
+/** 把 Release 正文里的 Markdown 揉成几行纯文本，弹窗里才看得懂。
+    只取前 4 行有内容的，符号（# ** ` <kbd>）全部剥掉。 */
+function cleanReleaseNotes(raw) {
+  if (!raw) return '';
+  const lines = String(raw)
+    .replace(/<[^>]+>/g, '')
+    .replace(/^#{1,6}\s*/gm, '')
+    .replace(/\*\*(.+?)\*\*/g, '$1')
+    .replace(/`([^`]+)`/g, '$1')
+    .replace(/^[-*]\s+/gm, '')
+    .split('\n')
+    .map((s) => s.trim())
+    .filter((s) => s && !/^-{3,}$/.test(s) && !s.startsWith('下载说明'));
+  return lines.slice(0, 4).map((s) => (s.length > 78 ? s.slice(0, 78) + '…' : s)).join('\n');
+}
+
 /** 桌面外壳每 0.4 秒回传一次下载进度。 */
 function updateProgress(p) {
   if (!p) return;
@@ -3616,7 +3633,7 @@ function showUpdate(info) {
   document.getElementById('updateNow').textContent = T('up.now');
   document.getElementById('lnkManual').textContent = T('up.manual');
   document.getElementById('lnkInstaller').textContent = T('up.installer');
-  setUpdateNote('');
+  setUpdateNote(cleanReleaseNotes(info && info.notes));
   wrap.classList.add('show');
 }
 
