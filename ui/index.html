@@ -222,8 +222,13 @@
     background: var(--soft); color: var(--ink); font-size: 12px; cursor: pointer;
   }
   #updateCard button.primary { background: var(--brand); border-color: var(--brand); color: #fff; }
-  #updateNote { margin-top: 10px; font-size: 12px; color: var(--muted); min-height: 16px;
-                white-space: pre-line; line-height: 1.6; max-height: 6.6em; overflow: hidden; }
+  /* 更新内容最多 3 行，超出用省略号收掉，不裁半行 */
+  #updateNote {
+    margin-top: 10px; font-size: 12px; color: var(--muted); min-height: 16px;
+    white-space: pre-line; line-height: 1.62;
+    display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 4;
+    overflow: hidden;
+  }
 
   /* --- 橡皮再点一次：滑到底才清空（防手滑） --- */
   #eraserPop { width: 300px; padding: 14px 14px 12px; }
@@ -3606,7 +3611,10 @@ function cleanReleaseNotes(raw) {
     .split('\n')
     .map((s) => s.trim())
     .filter((s) => s && !/^-{3,}$/.test(s) && !s.startsWith('下载说明'));
-  return lines.slice(0, 4).map((s) => (s.length > 78 ? s.slice(0, 78) + '…' : s)).join('\n');
+  // Release 正文第一行一般是产品名，弹窗标题已经写过了，别在这重复一遍
+  if (lines.length > 1 && /CleanBlackboard|简黑板/.test(lines[0])) lines.shift();
+  // 省略号交给 CSS 的 line-clamp 加，这里只截长度，免得出现两个「…」
+  return lines.slice(0, 3).map((s) => s.slice(0, 46)).join('\n');
 }
 
 /** 桌面外壳每 0.4 秒回传一次下载进度。 */

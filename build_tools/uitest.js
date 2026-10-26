@@ -600,7 +600,7 @@ async function main() {
   });
   check('更新框显示更新内容', /三档笔/.test(notesShown.text), notesShown.text.slice(0, 60));
   check('更新内容剥掉了 Markdown 符号', !/\*\*|`/.test(notesShown.text), notesShown.text.slice(0, 60));
-  check('更新内容不超过 4 行', notesShown.lines <= 4, String(notesShown.lines));
+  check('更新内容不超过 3 条', notesShown.lines <= 3, String(notesShown.lines));
   check('更新内容不带「下载说明」尾巴',
     !/下载说明/.test(notesShown.text), notesShown.text.slice(-30));
   await page.click('#updateLater');
