@@ -26,7 +26,7 @@ APP_SLUG = "CleanBlackboard"             # 英文简写：exe 文件名、标题
 APP_TITLE = f"{APP_SLUG} - {APP_NAME}"   # 标题栏：CleanBlackboard - 简黑板
 APP_ID = "CleanBlackboard"
 LEGACY_APP_ID = "WhiteboardDesktop"
-VERSION = "1.1.0"
+VERSION = "1.2.0"
 
 # ---------- 更新检查 ----------
 REPO = "Liuyichen27/clean-blackboard"          # 本项目
@@ -180,17 +180,55 @@ def _ver_tuple(s: str) -> tuple[int, ...]:
     return tuple(nums)
 
 
-def fetch_latest(tries: int = 3) -> dict | None:
-    """查 GitHub 上最新 release。直连 + 镜像各试一遍，弱网下多轮重试。"""
+def _cache_file() -> Path:
+    return app_dir() / "update.json"
+
+
+def _read_update_cache() -> dict | None:
+    """更新检查结果缓存：查到 24 小时内不再查，查不到 6 小时后再试。"""
+    try:
+        data = json.loads(_cache_file().read_text(encoding="utf-8"))
+        if not isinstance(data, dict):
+            return None
+        ttl = 24 * 3600 if data.get("version") else 6 * 3600
+        if time.time() - float(data.get("at") or 0) > ttl:
+            return None
+        return data
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def _write_update_cache(info: dict) -> None:
+    try:
+        _cache_file().write_text(
+            json.dumps({**info, "at": time.time()}, ensure_ascii=False),
+            encoding="utf-8",
+        )
+    except Exception:  # noqa: BLE001
+        pass
+
+
+def fetch_latest(tries: int = 3, use_cache: bool = True) -> dict | None:
+    """查 GitHub 上最新 release。直连 + 镜像各试一遍，弱网下多轮重试。
+
+    结果缓存：查到 24 小时内不再查，查失败 6 小时后再试 —— 否则每次打开
+    都要在弱网里把 2 个源 × 3 轮全部超时一遍，纯属浪费。
+    """
     fake = os.environ.get("WB_FAKE_LATEST")
     if fake:  # 自测用：假装线上有个新版本
         return {
             "tag": fake if fake.startswith("v") else f"v{fake}",
             "version": fake.lstrip("vV"),
             "date": "2026-10-25",
+            "notes": "",
             "assets": {EXE_ASSET: ""},
             "page": RELEASES_PAGE,
         }
+
+    if use_cache:
+        cached = _read_update_cache()
+        if cached is not None:
+            return cached
 
     urls = [
         f"https://api.github.com/repos/{REPO}/releases/latest",
@@ -210,14 +248,18 @@ def fetch_latest(tries: int = 3) -> dict | None:
                 for a in data.get("assets") or []
                 if a.get("name")
             }
-            return {
+            info = {
                 "tag": tag,
                 "version": tag.lstrip("vV"),
                 "date": str(data.get("published_at") or "")[:10],
+                "notes": str(data.get("body") or "")[:800],
                 "assets": assets,
                 "page": data.get("html_url") or RELEASES_PAGE,
             }
+            _write_update_cache(info)
+            return info
         time.sleep(0.8 + attempt)
+    _write_update_cache({})   # 记一笔失败，6 小时内别再试
     return None
 
 

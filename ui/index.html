@@ -40,6 +40,8 @@
   #board.is-grab { cursor: grab; }
   #board.is-grabbing { cursor: grabbing; }
   #board.is-locked { cursor: not-allowed; }
+  /* 点选模式：没有框选，光标给个普通箭头，暗示「点一下就选」 */
+  #board.is-free-select { cursor: default; }
 
   /* 拖文件进来的高亮 */
   #dropzone {
@@ -84,6 +86,13 @@
   }
   .rsep { width: 24px; height: 1px; background: var(--line); margin: 5px 0; flex: 0 0 auto; }
   .spacer { flex: 1 1 auto; min-height: 4px; }
+
+  /* 选择工具处在「点选」时，图标右下角亮一个小点 */
+  #btnSelect[data-mode="free"]::after {
+    content: ""; position: absolute; right: 7px; bottom: 6px;
+    width: 7px; height: 7px; border-radius: 50%; background: var(--brand);
+    box-shadow: 0 0 0 1.5px var(--paper);
+  }
 
   /* ================= 弹出面板 ================= */
   .pop {
@@ -326,6 +335,65 @@
   }
   .pen-foot input { width: 26px; height: 22px; border: 0; padding: 0; background: none; cursor: pointer; }
 
+  /* --- 选择方式（深色，和笔一致） --- */
+  #selectPop { width: 274px; padding: 12px; }
+  .selmode {
+    display: flex; gap: 10px; align-items: flex-start; width: 100%;
+    padding: 10px; margin-bottom: 6px; border: 1px solid transparent;
+    border-radius: 11px; background: rgba(255,255,255,.045);
+    color: #c9d2e1; text-align: left; cursor: pointer; font-family: inherit;
+    transition: background .14s, border-color .14s;
+  }
+  .selmode:hover { background: rgba(255,255,255,.09); }
+  .selmode.on { border-color: #3d6ef7; background: rgba(61,110,247,.18); }
+  .selmode svg { width: 20px; height: 20px; flex: 0 0 auto; margin-top: 1px;
+                 stroke: currentColor; fill: none; stroke-width: 1.6;
+                 stroke-linecap: round; stroke-linejoin: round; }
+  .selmode b { display: block; font-size: 12.5px; color: #fff; font-weight: 600; }
+  .selmode i { display: block; font-style: normal; font-size: 10.8px; color: #8c97a9;
+               margin-top: 2px; line-height: 1.5; }
+
+  /* --- 改颜色面板 --- */
+  #colorPop { width: 252px; padding: 12px; }
+  .cp-head { display: flex; align-items: center; gap: 9px; margin-bottom: 10px; }
+  .cp-swatch { width: 30px; height: 30px; border-radius: 9px; border: 1px solid var(--line);
+               box-shadow: inset 0 0 0 1px rgba(255,255,255,.35); flex: 0 0 auto; }
+  .cp-hex { flex: 1 1 auto; min-width: 0; font: 12.5px ui-monospace, Consolas, monospace;
+            border: 1px solid var(--line); border-radius: 8px; padding: 5px 8px;
+            color: var(--ink); background: var(--soft); outline: none; }
+  .cp-hex:focus { border-color: var(--brand); background: #fff; }
+  .cp-grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 7px; margin-bottom: 10px; }
+  .cp-dot { width: 100%; aspect-ratio: 1; border-radius: 50%; border: 2px solid transparent;
+            cursor: pointer; padding: 0; box-shadow: inset 0 0 0 1px rgba(15,23,42,.1);
+            transition: transform .12s; }
+  .cp-dot:hover { transform: scale(1.12); }
+  .cp-dot.on { border-color: var(--brand); }
+  .cp-sv { position: relative; width: 100%; height: 92px; border-radius: 9px;
+           overflow: hidden; cursor: crosshair; margin-bottom: 9px; }
+  .cp-sv canvas { display: block; width: 100%; height: 100%; }
+  .cp-hue { position: relative; height: 12px; border-radius: 99px; cursor: pointer;
+            margin-bottom: 10px;
+            background: linear-gradient(90deg,#f00,#ff0,#0f0,#0ff,#00f,#f0f,#f00); }
+  .cp-sv .knob, .cp-hue .knob {
+    position: absolute; width: 12px; height: 12px; border-radius: 50%;
+    border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(15,23,42,.4);
+    transform: translate(-50%, -50%); pointer-events: none;
+  }
+  .cp-hue .knob { top: 50%; }
+  .cp-row { display: flex; align-items: center; gap: 6px; }
+  .cp-row input { width: 100%; min-width: 0; border: 1px solid var(--line); border-radius: 7px;
+                  padding: 4px 5px; font: 11.5px ui-monospace, Consolas, monospace;
+                  background: var(--soft); color: var(--ink); outline: none; }
+  .cp-row span { font-size: 10.5px; color: var(--muted); }
+  .cp-pick { width: 100%; margin-top: 9px; height: 30px; border-radius: 9px;
+             border: 1px dashed #d9dfea; background: var(--soft); color: #46536b;
+             font-size: 12px; font-family: inherit; cursor: pointer;
+             display: flex; align-items: center; justify-content: center; gap: 6px; }
+  .cp-pick:hover { border-color: var(--brand); color: var(--brand); }
+  .cp-pick svg { width: 15px; height: 15px; stroke: currentColor; fill: none; stroke-width: 1.7; }
+  .cp-note { margin: 8px 2px 0; font-size: 10.5px; color: var(--muted); line-height: 1.55; }
+  #selectPop .cp-note { color: #8c97a9; }
+
   /* --- 形状 / 页面 / 文件（浅色） --- */
   .shape-grid { display: grid; grid-template-columns: repeat(2, 44px); gap: 6px; }
   .shape-grid .rbtn { width: 44px; height: 44px; background: var(--soft); }
@@ -553,7 +621,7 @@ window.__slow = (what, ms) => {
   <button class="rbtn" data-tool="eraser" id="btnEraser" title="橡皮 · 整笔擦除 (E) · 再点一次清空全部">
     <svg viewBox="0 0 24 24"><path d="M4 16l6-6 8 8H8z"/><path d="M10 10l4-4 6 6-4 4"/></svg>
   </button>
-  <button class="rbtn" data-tool="select" title="选择 / 框选 (V)">
+  <button class="rbtn" id="btnSelect" data-tool="select" title="选择 / 框选 (V)">
     <svg viewBox="0 0 24 24"><path d="M5 3l14 8-6 1.6L10.5 20z"/></svg>
   </button>
   <button class="rbtn" id="btnShapes" title="形状">
@@ -634,6 +702,41 @@ window.__slow = (what, ms) => {
     </div>
   </div>
   <p class="slidehint" id="eraseNote">所有页一起清空，滑到底才生效，松手前都不算。清完还能 Ctrl+Z 撤销。</p>
+</div>
+
+<!-- ============ 选择方式：框选 / 点选 ============ -->
+<div class="pop dark" id="selectPop">
+  <h5 id="selModeTitle">选择方式</h5>
+  <button class="selmode on" data-selmode="marquee">
+    <svg viewBox="0 0 24 24"><path d="M4 8V5h3"/><path d="M17 5h3v3"/><path d="M20 17v2h-3"/><path d="M7 19H4v-3"/><path d="M9 12h6"/></svg>
+    <span><b id="smMarquee">框选</b><i id="smMarqueeHint">拖出矩形，框住的东西一起选中</i></span>
+  </button>
+  <button class="selmode" data-selmode="free">
+    <svg viewBox="0 0 24 24"><path d="M4 15c3-6 5 2 8-2s4 1 5-1"/><circle cx="18.5" cy="17.5" r="2.4"/></svg>
+    <span><b id="smFree">点选</b><i id="smFreeHint">点哪根笔迹 / 哪段文字就选哪个</i></span>
+  </button>
+  <p class="cp-note" id="selModeNote">按住 Shift 可以多选；选中后浮出工具条，颜色也能改。</p>
+</div>
+
+<!-- ============ 改颜色 ============ -->
+<div class="pop light" id="colorPop">
+  <div class="cp-head">
+    <span class="cp-swatch" id="cpSwatch"></span>
+    <input class="cp-hex" id="cpHex" maxlength="7" spellcheck="false" value="#1f2937">
+  </div>
+  <div class="cp-grid" id="cpGrid"></div>
+  <div class="cp-sv" id="cpSV"><canvas id="cpSVC" width="228" height="92"></canvas><span class="knob" id="cpSVKnob"></span></div>
+  <div class="cp-hue" id="cpHue"><span class="knob" id="cpHueKnob"></span></div>
+  <div class="cp-row">
+    <input type="number" id="cpR" min="0" max="255"><span>R</span>
+    <input type="number" id="cpG" min="0" max="255"><span>G</span>
+    <input type="number" id="cpB" min="0" max="255"><span>B</span>
+  </div>
+  <button class="cp-pick" id="cpPick">
+    <svg viewBox="0 0 24 24"><path d="M15 4l5 5-9 9-5 1 1-5z"/><path d="M13 6l5 5"/></svg>
+    <span id="cpPickLbl">吸管：取屏幕上的颜色</span>
+  </button>
+  <p class="cp-note" id="cpNote">改的是选中的对象，不动画笔颜色。</p>
 </div>
 
 <!-- ============ 形状浮窗 ============ -->
@@ -864,6 +967,17 @@ const I18N = {
     'ui.eraseTitle': '全部清除',
     'ui.eraseHint': '向右滑动清除全部板书',
     'ui.eraseNote': '所有页一起清空，滑到底才生效，松手前都不算。清完还能 Ctrl+Z 撤销。',
+    'ui.selTitle': '选择方式',
+    'ui.selMarquee': '框选',
+    'ui.selMarqueeHint': '拖出矩形，框住的东西一起选中',
+    'ui.selFree': '点选',
+    'ui.selFreeHint': '点哪根笔迹 / 哪段文字就选哪个',
+    'ui.selNote': '按住 Shift 可以多选；选中后浮出工具条，颜色也能改。',
+    'ui.colorTitle': '改颜色',
+    'ui.colorNote': '改的是选中的对象，不动画笔颜色。',
+    'ui.eyedropper': '吸管：取屏幕上的颜色',
+    'ui.eyedropperNo': '这个内核不支持吸管，用下面的色块或 RGB 吧',
+    'ui.colorNoImage': '图片不支持改色，其它对象可以',
 
     'welcome.title': '开始你的第一笔',
     'welcome.text': '右边是工具栏，点画笔再点一次可以换颜色。<br>滚轮平移、Ctrl + 滚轮缩放，图片直接拖进来。',
@@ -959,6 +1073,17 @@ const I18N = {
     'ui.eraseTitle': 'Clear everything',
     'ui.eraseHint': 'Slide right to wipe the whole board',
     'ui.eraseNote': 'Every page gets wiped. It only counts at the far right — and Ctrl+Z brings it back.',
+    'ui.selTitle': 'Select mode',
+    'ui.selMarquee': 'Box select',
+    'ui.selMarqueeHint': 'Drag a rectangle and grab everything inside',
+    'ui.selFree': 'Click select',
+    'ui.selFreeHint': 'Click a stroke or a text block to pick just that one',
+    'ui.selNote': 'Hold Shift to pick several. The toolbar appears once something is selected.',
+    'ui.colorTitle': 'Change color',
+    'ui.colorNote': 'Applies to the selected objects, not to the pen.',
+    'ui.eyedropper': 'Eyedropper: pick a color from the screen',
+    'ui.eyedropperNo': 'This engine has no eyedropper — use the swatches or RGB',
+    'ui.colorNoImage': 'Images cannot be recolored; other objects can',
 
     'welcome.title': 'Start your first stroke',
     'welcome.text': 'The toolbar is on the right — click the pen again to switch color.<br>Scroll to pan, Ctrl + scroll to zoom, or drag an image straight in.',
@@ -1085,6 +1210,14 @@ function applyLang() {
   txt('eraseNote', 'ui.eraseNote');
   txt('shareTitle', 'share.title');
   txt('shareDesc', 'share.desc');
+  txt('selModeTitle', 'ui.selTitle');
+  txt('smMarquee', 'ui.selMarquee');
+  txt('smMarqueeHint', 'ui.selMarqueeHint');
+  txt('smFree', 'ui.selFree');
+  txt('smFreeHint', 'ui.selFreeHint');
+  txt('selModeNote', 'ui.selNote');
+  txt('cpPickLbl', 'ui.eyedropper');
+  txt('cpNote', 'ui.colorNote');
   const penNames = { pen: 'ui.pen', marker: 'ui.marker', brush: 'ui.brush' };
   document.querySelectorAll('[data-pen]').forEach((b) => {
     b.textContent = T(penNames[b.dataset.pen] || 'ui.pen');
@@ -1155,6 +1288,7 @@ const state = {
   spaceDown: false,
   dirty: false,
   theme: 'white',          // white 白板 / black 黑板
+  selMode: 'marquee',      // marquee 框选 / free 点选（选择工具的两种方式）
 };
 
 const canvas = document.getElementById('board');
@@ -1761,8 +1895,9 @@ function hitTest(o, wx, wy, tol) {
   return false;
 }
 
-function topObjectAt(wx, wy, includeLocked = true) {
-  const tol = 6 / state.cam.s;
+function topObjectAt(wx, wy, includeLocked = true, tolOverride) {
+  // 点选模式把命中范围放大一点：细线和毛笔的收笔尖也能一次点中
+  const tol = tolOverride || 6 / state.cam.s;
   const objs = objects();
   for (let i = objs.length - 1; i >= 0; i--) {
     const o = objs[i];
@@ -1964,10 +2099,12 @@ function updateSelbar() {
   bar.style.top = `${Math.max(6, top)}px`;
 
   const hasText = state.selection.some(o => o.type === 'text');
+  const canColor = state.selection.some(o => o.type !== 'image');
   const locked = state.selection.every(o => o.locked);
-  for (const id of ['sbFontDown', 'sbFontUp', 'sbColor', 'sbTextSep']) {
+  for (const id of ['sbFontDown', 'sbFontUp', 'sbTextSep']) {
     document.getElementById(id).style.display = hasText ? 'flex' : 'none';
   }
+  document.getElementById('sbColor').style.display = canColor ? 'flex' : 'none';
   document.getElementById('sbLock').classList.toggle('on', locked);
 }
 
@@ -2019,7 +2156,8 @@ canvas.addEventListener('pointerdown', (e) => {
       return;
     }
 
-    const hit = topObjectAt(w.x, w.y);
+    const hit = topObjectAt(w.x, w.y, true,
+                            state.selMode === 'free' ? 12 / state.cam.s : 0);
     if (hit) {
       if (e.shiftKey) {
         state.selection = state.selection.includes(hit)
@@ -2040,7 +2178,10 @@ canvas.addEventListener('pointerdown', (e) => {
       requestRender();
     } else {
       if (!e.shiftKey) clearSelection();
-      state.marquee = { x0: w.x, y0: w.y, x: w.x, y: w.y, w: 0, h: 0 };
+      // 点选模式下拖空白不拉框：想选中一根线就点它，别顺手拖出一片选择区
+      if (state.selMode !== 'free') {
+        state.marquee = { x0: w.x, y0: w.y, x: w.x, y: w.y, w: 0, h: 0 };
+      }
       requestRender();
     }
     return;
@@ -2704,11 +2845,13 @@ function setTool(tool, opts = {}) {
   // 如果关完再看状态，就永远判断成"没开"，于是关不掉也开不出来。
   const penPopWasOpen = document.getElementById('penPop').classList.contains('show');
   const eraserPopWasOpen = document.getElementById('eraserPop').classList.contains('show');
+  const selectPopWasOpen = document.getElementById('selectPop').classList.contains('show');
   state.tool = tool;
-  if (tool !== 'select') clearSelection();
+  if (tool !== 'select') { clearSelection(); closeColorPop(); }
   document.querySelectorAll('[data-tool]').forEach(b => b.classList.toggle('active', b.dataset.tool === tool));
   canvas.className = '';
   if (CURSOR[tool]) canvas.classList.add(CURSOR[tool]);
+  if (tool === 'select' && state.selMode === 'free') canvas.classList.add('is-free-select');
   closePops();
   // 再点一次同一个画笔才弹设置窗；原先是开着的（刚被 closePops 关掉）就保持关闭；
   // silent 用于启动初始化，别一打开就弹
@@ -2718,6 +2861,10 @@ function setTool(tool, opts = {}) {
     resetErase();
     openPop('eraserPop', 'btnEraser');
   }
+  // 选择工具：再点一次切换「框选 / 点选」
+  if (tool === 'select' && wasSame && !opts.silent && !selectPopWasOpen) {
+    openPop('selectPop', 'btnSelect');
+  }
   requestRender();
 }
 
@@ -2725,7 +2872,8 @@ document.querySelectorAll('[data-tool]').forEach(btn => {
   btn.addEventListener('click', (e) => {
     e.stopPropagation();
     setTool(btn.dataset.tool);
-    if (btn.dataset.tool !== 'pen' && btn.dataset.tool !== 'eraser') closePops();
+    // pen / eraser / select 这三个的「第二下」要弹面板，别在这里顺手关掉
+    if (!['pen', 'eraser', 'select'].includes(btn.dataset.tool)) closePops();
   });
 });
 
@@ -2941,14 +3089,286 @@ function bumpFont(dir) {
   commitChange();
 }
 
+/* =========================================================
+   18.6 选择方式：框选 / 点选
+   ========================================================= */
+const SELMODE_KEY = 'whiteboard.selmode';
+
+function loadSelMode() {
+  try {
+    const v = localStorage.getItem(SELMODE_KEY);
+    if (v === 'free' || v === 'marquee') state.selMode = v;
+  } catch (e) { /* 隐私模式读不到就用默认 */ }
+}
+
+function paintSelMode() {
+  document.querySelectorAll('#selectPop [data-selmode]').forEach((b) => {
+    b.classList.toggle('on', b.dataset.selmode === state.selMode);
+  });
+  // 侧栏图标上做个小标记：点选模式时右下角亮一个点
+  const btn = document.getElementById('btnSelect');
+  if (btn) btn.dataset.mode = state.selMode;
+}
+
+function setSelMode(mode) {
+  state.selMode = mode === 'free' ? 'free' : 'marquee';
+  try { localStorage.setItem(SELMODE_KEY, state.selMode); } catch (e) { /* 忽略 */ }
+  paintSelMode();
+  canvas.classList.toggle('is-free-select', state.selMode === 'free');
+  toast(T(state.selMode === 'free' ? 'ui.selFree' : 'ui.selMarquee')
+        + ' · ' + T(state.selMode === 'free' ? 'ui.selFreeHint' : 'ui.selMarqueeHint'));
+}
+
+document.querySelectorAll('#selectPop [data-selmode]').forEach((b) => {
+  b.onclick = (e) => {
+    e.stopPropagation();
+    setSelMode(b.dataset.selmode);
+    closePops();
+  };
+});
+
+/* =========================================================
+   18.7 改颜色：常用色 / 大色块 / RGB / 吸管
+   ========================================================= */
+const CP = { h: 210, s: 0.35, v: 0.35, hex: '#1f2937', dragging: null };
+
+function hex2rgb(hex) {
+  const m = String(hex || '').replace('#', '').trim();
+  if (m.length === 3) {
+    return { r: parseInt(m[0] + m[0], 16), g: parseInt(m[1] + m[1], 16), b: parseInt(m[2] + m[2], 16) };
+  }
+  if (m.length !== 6 || /[^0-9a-f]/i.test(m)) return null;
+  return { r: parseInt(m.slice(0, 2), 16), g: parseInt(m.slice(2, 4), 16), b: parseInt(m.slice(4, 6), 16) };
+}
+
+const pad2 = (n) => n.toString(16).padStart(2, '0');
+const rgb2hex = (r, g, b) => '#' + pad2(clamp(Math.round(r), 0, 255)) + pad2(clamp(Math.round(g), 0, 255)) + pad2(clamp(Math.round(b), 0, 255));
+
+function rgb2hsv(r, g, b) {
+  r /= 255; g /= 255; b /= 255;
+  const max = Math.max(r, g, b), min = Math.min(r, g, b), d = max - min;
+  let h = 0;
+  if (d) {
+    if (max === r) h = ((g - b) / d) % 6;
+    else if (max === g) h = (b - r) / d + 2;
+    else h = (r - g) / d + 4;
+    h *= 60;
+    if (h < 0) h += 360;
+  }
+  return { h, s: max ? d / max : 0, v: max };
+}
+
+function hsv2rgb(h, s, v) {
+  const c = v * s;
+  const x = c * (1 - Math.abs(((h / 60) % 2) - 1));
+  const m = v - c;
+  const seg = [
+    [c, x, 0], [x, c, 0], [0, c, x], [0, x, c], [x, 0, c], [c, 0, x],
+  ][Math.floor(((h % 360) + 360) % 360 / 60) % 6];
+  return { r: (seg[0] + m) * 255, g: (seg[1] + m) * 255, b: (seg[2] + m) * 255 };
+}
+
+/** 画饱和度/明度那块大色块。 */
+function paintSV() {
+  const c = document.getElementById('cpSVC');
+  if (!c) return;
+  const g = c.getContext('2d');
+  const w = c.width, h = c.height;
+  g.fillStyle = `hsl(${CP.h},100%,50%)`;
+  g.fillRect(0, 0, w, h);
+  const white = g.createLinearGradient(0, 0, w, 0);
+  white.addColorStop(0, 'rgba(255,255,255,1)');
+  white.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = white;
+  g.fillRect(0, 0, w, h);
+  const black = g.createLinearGradient(0, 0, 0, h);
+  black.addColorStop(0, 'rgba(0,0,0,0)');
+  black.addColorStop(1, 'rgba(0,0,0,1)');
+  g.fillStyle = black;
+  g.fillRect(0, 0, w, h);
+
+  const knob = document.getElementById('cpSVKnob');
+  if (knob) {
+    knob.style.left = `${CP.s * 100}%`;
+    knob.style.top = `${(1 - CP.v) * 100}%`;
+  }
+  const hk = document.getElementById('cpHueKnob');
+  if (hk) hk.style.left = `${(CP.h / 360) * 100}%`;
+}
+
+/** 把面板上的状态同步到色块、hex、RGB 三个输入框。 */
+function syncColorInputs() {
+  const { r, g, b } = hex2rgb(CP.hex) || { r: 0, g: 0, b: 0 };
+  const sw = document.getElementById('cpSwatch');
+  if (sw) sw.style.background = CP.hex;
+  const hexInput = document.getElementById('cpHex');
+  if (hexInput && document.activeElement !== hexInput) hexInput.value = CP.hex;
+  const set = (id, v) => {
+    const el = document.getElementById(id);
+    if (el && document.activeElement !== el) el.value = String(v);
+  };
+  set('cpR', r); set('cpG', g); set('cpB', b);
+  document.querySelectorAll('#cpGrid .cp-dot').forEach((d) => {
+    d.classList.toggle('on', d.dataset.hex.toLowerCase() === CP.hex.toLowerCase());
+  });
+}
+
+function setDraftColor(hex, opts = {}) {
+  const rgb = hex2rgb(hex);
+  if (!rgb) return;
+  CP.hex = rgb2hex(rgb.r, rgb.g, rgb.b);
+  const hsv = rgb2hsv(rgb.r, rgb.g, rgb.b);
+  // 纯黑纯白时保留原来的色相，不然拖色块会突然跳色
+  if (hsv.s > 0.001) CP.h = hsv.h;
+  if (hsv.v > 0.001) { CP.s = hsv.s; CP.v = hsv.v; }
+  paintSV();
+  syncColorInputs();
+  if (opts.apply) {
+    beginChange();
+    recolorSelection(CP.hex);
+    commitChange();
+  }
+}
+
+function recolorSelection(hex) {
+  for (const o of state.selection) {
+    if (o.type === 'image') continue;
+    o.color = hex;
+  }
+}
+
+/** 拖大色块时不要每一格都进撤销栈：按下 beginChange，松手 commitChange。 */
+function liveRecolor() {
+  recolorSelection(CP.hex);
+  cacheDirty = true;
+  requestRender();
+}
+
+function openColorPop() {
+  const able = state.selection.filter(o => o.type !== 'image');
+  if (!able.length) { toast(T('ui.colorNoImage')); return; }
+  const first = able[0];
+  const cur = first.color || '#1f2937';
+  setDraftColor(cur);
+  openPop('colorPop', 'sbColor');
+}
+
+function closeColorPop() {
+  const pop = document.getElementById('colorPop');
+  if (pop) pop.classList.remove('show');
+}
+
 document.getElementById('sbColor').onclick = (e) => {
   e.stopPropagation();
-  const texts = state.selection.filter(o => o.type === 'text');
-  if (!texts.length) return;
-  const next = COLORS[(COLORS.indexOf(state.color) + 1) % COLORS.length];
-  beginChange();
-  for (const t of texts) t.color = next;
-  commitChange();
+  const pop = document.getElementById('colorPop');
+  if (pop.classList.contains('show')) { closeColorPop(); return; }
+  openColorPop();
+};
+
+// 常用色格子
+(function buildColorGrid() {
+  const grid = document.getElementById('cpGrid');
+  if (!grid) return;
+  grid.innerHTML = COLORS.map(c =>
+    `<button class="cp-dot" data-hex="${c}" style="background:${c}" title="${c}"></button>`
+  ).join('');
+  grid.onclick = (e) => {
+    const dot = e.target.closest('.cp-dot');
+    if (!dot) return;
+    e.stopPropagation();
+    setDraftColor(dot.dataset.hex, { apply: true });
+  };
+})();
+
+// hex 输入
+document.getElementById('cpHex').addEventListener('change', (e) => {
+  let v = e.target.value.trim();
+  if (!v.startsWith('#')) v = '#' + v;
+  const rgb = hex2rgb(v);
+  if (!rgb) { syncColorInputs(); return; }
+  setDraftColor(rgb2hex(rgb.r, rgb.g, rgb.b), { apply: true });
+});
+
+// RGB 输入
+['cpR', 'cpG', 'cpB'].forEach((id) => {
+  document.getElementById(id).addEventListener('change', () => {
+    const r = clamp(parseInt(document.getElementById('cpR').value, 10) || 0, 0, 255);
+    const g = clamp(parseInt(document.getElementById('cpG').value, 10) || 0, 0, 255);
+    const b = clamp(parseInt(document.getElementById('cpB').value, 10) || 0, 0, 255);
+    setDraftColor(rgb2hex(r, g, b), { apply: true });
+  });
+});
+
+// 大色块拖动
+(function wireSV() {
+  const box = document.getElementById('cpSV');
+  if (!box) return;
+  const pick = (ev) => {
+    const r = box.getBoundingClientRect();
+    CP.s = clamp((ev.clientX - r.left) / r.width, 0, 1);
+    CP.v = clamp(1 - (ev.clientY - r.top) / r.height, 0, 1);
+    const { r: rr, g, b } = hsv2rgb(CP.h, CP.s, CP.v);
+    CP.hex = rgb2hex(rr, g, b);
+    paintSV();
+    syncColorInputs();
+    liveRecolor();
+  };
+  box.addEventListener('pointerdown', (ev) => {
+    ev.preventDefault();
+    ev.stopPropagation();
+    beginChange();
+    CP.dragging = true;
+    try { box.setPointerCapture(ev.pointerId); } catch (err) { /* 忽略 */ }
+    pick(ev);
+  });
+  box.addEventListener('pointermove', (ev) => { if (CP.dragging) pick(ev); });
+  const stop = () => {
+    if (!CP.dragging) return;
+    CP.dragging = false;
+    commitChange();
+  };
+  box.addEventListener('pointerup', stop);
+  box.addEventListener('pointercancel', stop);
+})();
+
+// 色相条
+(function wireHue() {
+  const bar = document.getElementById('cpHue');
+  if (!bar) return;
+  let dragging = false;
+  const pick = (ev) => {
+    const r = bar.getBoundingClientRect();
+    CP.h = clamp((ev.clientX - r.left) / r.width, 0, 1) * 360;
+    const { r: rr, g, b } = hsv2rgb(CP.h, Math.max(CP.s, 0.02), Math.max(CP.v, 0.02));
+    CP.hex = rgb2hex(rr, g, b);
+    paintSV();
+    syncColorInputs();
+    liveRecolor();
+  };
+  bar.addEventListener('pointerdown', (ev) => {
+    ev.preventDefault();
+    ev.stopPropagation();
+    beginChange();
+    dragging = true;
+    try { bar.setPointerCapture(ev.pointerId); } catch (err) { /* 忽略 */ }
+    pick(ev);
+  });
+  bar.addEventListener('pointermove', (ev) => { if (dragging) pick(ev); });
+  const stop = () => { if (dragging) { dragging = false; commitChange(); } };
+  bar.addEventListener('pointerup', stop);
+  bar.addEventListener('pointercancel', stop);
+})();
+
+// 吸管：Chromium 95+ 才有 EyeDropper，没有就说清楚，别假装成功
+document.getElementById('cpPick').onclick = async (e) => {
+  e.stopPropagation();
+  if (!window.EyeDropper) { toast(T('ui.eyedropperNo')); return; }
+  try {
+    const res = await new window.EyeDropper().open();
+    if (res && res.sRGBHex) setDraftColor(res.sRGBHex, { apply: true });
+  } catch (err) {
+    // 用户按 Esc 取消会 reject，不用提示
+  }
 };
 
 /* =========================================================
@@ -3215,6 +3635,8 @@ function init() {
   if (th) state.theme = th;            // 主题算偏好，留着
 
   buildPenPanel();
+  loadSelMode();                       // 上次选的框选/点选，下次接着用
+  paintSelMode();
   applyTheme(state.theme, { keepPen: false, quiet: true });
   refreshColorDot();
   refreshSizeDots();

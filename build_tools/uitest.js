@@ -758,6 +758,139 @@ async function main() {
   check('开场提示只在第一次出现', w1 && w2.hidden, `第一次显示=${w1} 之后隐藏=${w2.hidden}`);
   check('再开一次依然是空板', w2.objs === 0, `objects=${w2.objs}`);
 
+  // ---- 24.5 选择方式：框选 / 点选 ----
+  await page.evaluate(() => localStorage.removeItem('whiteboard.selmode'));
+  await page.reload();
+  await page.waitForTimeout(500);
+
+  // 画一笔横线，方便后面点中
+  const bb = await page.locator('#board').boundingBox();
+  const ex = bb.x + bb.width / 2, ey = bb.y + bb.height / 2;
+  await page.mouse.move(ex - 200, ey);
+  await page.mouse.down();
+  for (let i = 1; i <= 20; i++) await page.mouse.move(ex - 200 + i * 20, ey);
+  await page.mouse.up();
+  await page.waitForTimeout(200);
+
+  await page.keyboard.press('v');
+  await page.waitForTimeout(150);
+  await page.click('#btnSelect');
+  await page.waitForTimeout(250);
+  const selPop = () => page.evaluate(() =>
+    document.getElementById('selectPop').classList.contains('show'));
+  check('再点一次选择图标弹出「选择方式」', await selPop());
+
+  const modeNow = () => page.evaluate(() => window.__whiteboard.state.selMode);
+  check('默认是框选', (await modeNow()) === 'marquee', await modeNow());
+  check('框选项高亮',
+    await page.evaluate(() =>
+      document.querySelector('#selectPop [data-selmode="marquee"]').classList.contains('on')));
+
+  // 框选：拖一个矩形，应该选中框里的笔画
+  await page.click('#board', { position: { x: 20, y: 20 } });
+  await page.mouse.move(ex - 260, ey - 100);
+  await page.mouse.down();
+  await page.mouse.move(ex + 260, ey + 100, { steps: 12 });
+  await page.mouse.up();
+  await page.waitForTimeout(250);
+  const marqueeSel = await page.evaluate(() => window.__whiteboard.state.selection.length);
+  check('框选能一次选中框里的对象', marqueeSel >= 1, String(marqueeSel));
+
+  // 切到点选
+  await page.click('#btnSelect');
+  await page.waitForTimeout(200);
+  await page.click('#selectPop [data-selmode="free"]');
+  await page.waitForTimeout(250);
+  check('能切到点选', (await modeNow()) === 'free', await modeNow());
+  check('点选记在 localStorage',
+    (await page.evaluate(() => localStorage.getItem('whiteboard.selmode'))) === 'free');
+  check('选择图标上有标记',
+    (await page.evaluate(() => document.getElementById('btnSelect').dataset.mode)) === 'free');
+  check('画布切到箭头光标',
+    await page.evaluate(() => document.getElementById('board').classList.contains('is-free-select')));
+
+  // 点选：点一下那条线就选中它
+  await page.click('#board', { position: { x: 20, y: 20 } });   // 先取消选择
+  await page.waitForTimeout(150);
+  await page.mouse.click(ex, ey);
+  await page.waitForTimeout(250);
+  const one = await page.evaluate(() => window.__whiteboard.state.selection.length);
+  check('点选：点中线条就选中它', one === 1, String(one));
+
+  // 点选模式下拖空白不拉框
+  await page.mouse.move(ex - 300, ey - 160);
+  await page.mouse.down();
+  await page.mouse.move(ex - 200, ey - 60, { steps: 8 });
+  const midMarquee = await page.evaluate(() => window.__whiteboard.state.marquee);
+  await page.mouse.up();
+  await page.waitForTimeout(150);
+  check('点选模式拖空白不拉框', midMarquee === null, JSON.stringify(midMarquee));
+
+  // ---- 24.6 改颜色 ----
+  await page.mouse.click(ex, ey);
+  await page.waitForTimeout(200);
+  check('选中非文字对象也显示「颜色」按钮',
+    await page.evaluate(() =>
+      document.getElementById('sbColor').style.display !== 'none'));
+
+  await page.click('#sbColor');
+  await page.waitForTimeout(300);
+  const cpShown = () => page.evaluate(() =>
+    document.getElementById('colorPop').classList.contains('show'));
+  check('点「颜色」弹出取色面板', await cpShown());
+  check('面板里有常用色', (await page.locator('#cpGrid .cp-dot').count()) >= 12,
+    String(await page.locator('#cpGrid .cp-dot').count()));
+  check('面板里有大色块', (await page.locator('#cpSVC').count()) === 1);
+  check('面板里有色相条', (await page.locator('#cpHue').count()) === 1);
+  check('面板里有 RGB 三个框',
+    (await page.locator('#cpR').count()) + (await page.locator('#cpG').count())
+    + (await page.locator('#cpB').count()) === 3);
+  check('面板里有吸管按钮', (await page.locator('#cpPick').count()) === 1);
+
+  // 从对象本身读颜色：撤销会把选中的引用清掉，读 selection 会拿到 undefined
+  const colorOf = () => page.evaluate(() => {
+    const o = window.__whiteboard.state.pages[0].objects[0];
+    return o ? o.color : null;
+  });
+
+  await page.click('#cpGrid .cp-dot:nth-child(2)');
+  await page.waitForTimeout(250);
+  check('点常用色能改颜色', (await colorOf()) === '#ef4444', await colorOf());
+
+  await page.locator('#cpHex').fill('#123456');
+  await page.locator('#cpHex').dispatchEvent('change');
+  await page.waitForTimeout(250);
+  check('填 hex 能改颜色', (await colorOf()) === '#123456', await colorOf());
+
+  await page.locator('#cpR').fill('200');
+  await page.locator('#cpR').dispatchEvent('change');
+  await page.waitForTimeout(250);
+  const afterRgb = await colorOf();
+  check('填 RGB 能改颜色', afterRgb.startsWith('#c8'), afterRgb);
+
+  const hueBox = await page.locator('#cpHue').boundingBox();
+  await page.mouse.click(hueBox.x + hueBox.width * 0.75, hueBox.y + hueBox.height / 2);
+  await page.waitForTimeout(250);
+  const afterHue = await colorOf();
+  check('拖色相条能改颜色', afterHue !== afterRgb, `${afterRgb} → ${afterHue}`);
+
+  const svBox = await page.locator('#cpSV').boundingBox();
+  await page.mouse.move(svBox.x + 20, svBox.y + 20);
+  await page.mouse.down();
+  await page.mouse.move(svBox.x + svBox.width * 0.8, svBox.y + svBox.height * 0.7, { steps: 8 });
+  await page.mouse.up();
+  await page.waitForTimeout(250);
+  const afterSV = await colorOf();
+  check('拖大色块能改颜色', afterSV !== afterHue, `${afterHue} → ${afterSV}`);
+
+  await page.keyboard.press('Control+z');
+  await page.waitForTimeout(250);
+  check('改色能撤销', (await colorOf()) !== afterSV, await colorOf());
+
+  await page.keyboard.press('Escape');
+  await page.waitForTimeout(200);
+  check('Esc 能关掉取色面板', !(await cpShown()));
+
   // ---- 25. 报错 ----
   check('运行期无 JS 报错', errors.length === 0, errors.slice(0, 4).join(' | '));
 
