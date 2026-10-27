@@ -222,9 +222,14 @@
     background: var(--soft); color: var(--ink); font-size: 12px; cursor: pointer;
   }
   #updateCard button.primary { background: var(--brand); border-color: var(--brand); color: #fff; }
-  /* 更新内容最多 3 行，超出用省略号收掉，不裁半行 */
+  #updateNoteLabel {
+    margin-top: 11px; font-size: 12px; font-weight: 600; color: var(--ink);
+    display: none;
+  }
+  #updateNoteLabel.show { display: block; }
+  /* 更新内容最多 3 条，超出用省略号收掉，不裁半行 */
   #updateNote {
-    margin-top: 10px; font-size: 12px; color: var(--muted); min-height: 16px;
+    margin-top: 4px; font-size: 12px; color: var(--muted); min-height: 0;
     white-space: pre-line; line-height: 1.62;
     display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 4;
     overflow: hidden;
@@ -777,6 +782,7 @@ window.__slow = (what, ms) => {
   <div id="updateCard">
     <h4 id="updateTitle">发现新版本</h4>
     <div class="uver" id="updateVer"></div>
+    <div id="updateNoteLabel">本次更新内容：</div>
     <div id="updateNote"></div>
     <div class="ulinks">
       <a id="lnkManual">无法安装？点此跳转手动下载</a>
@@ -990,6 +996,7 @@ const I18N = {
 
     'hud.pos': '当前白板位置', 'hud.top': '已达到顶端', 'hud.bottom': '已达底端',
 
+    'up.whatsnew': '本次更新内容：',
     'up.title': '发现新版本 {v}',
     'up.desc': '当前版本 {c} → 最新版本 {l}',
     'up.date': '（发布于 {d}）',
@@ -1096,6 +1103,7 @@ const I18N = {
 
     'hud.pos': 'Board position', 'hud.top': 'Already at the top', 'hud.bottom': 'Reached the bottom',
 
+    'up.whatsnew': "What's new:",
     'up.title': 'Version {v} is available',
     'up.desc': 'You have {c} → latest is {l}',
     'up.date': ' (released {d})',
@@ -3598,11 +3606,23 @@ function setUpdateNote(text) {
   if (el) el.textContent = text || '';
 }
 
-/** 把 Release 正文里的 Markdown 揉成几行纯文本，弹窗里才看得懂。
-    只取前 4 行有内容的，符号（# ** ` <kbd>）全部剥掉。 */
+/** 进度/结果之类的状态行：这时候不该再顶着「本次更新内容：」的标题。 */
+function setUpdateStatus(text) {
+  document.getElementById('updateNoteLabel')?.classList.remove('show');
+  setUpdateNote(text);
+}
+
+/** 把 Release 正文揉成几条纯文本，弹窗里才看得懂。
+    正文里有「本次更新」小节就只取那一段；没有就退回前几行。
+    只留 3 条，符号（# ** ` <kbd>）全部剥掉。 */
 function cleanReleaseNotes(raw) {
   if (!raw) return '';
-  const lines = String(raw)
+  let text = String(raw);
+  const seg = text.match(
+    /(?:^|\n)\s*#{1,6}\s*(?:本次更新内容|本次更新|更新内容|what'?s\s*new)[^\n]*\n([\s\S]*?)(?=\n\s*#{1,6}\s|\n\s*-{3,}|$)/i);
+  if (seg && seg[1]) text = seg[1];
+
+  const lines = text
     .replace(/<[^>]+>/g, '')
     .replace(/^#{1,6}\s*/gm, '')
     .replace(/\*\*(.+?)\*\*/g, '$1')
@@ -3622,9 +3642,9 @@ function updateProgress(p) {
   if (!p) return;
   const mb = (n) => (n / 1048576).toFixed(1);
   if (p.pct === null || p.pct === undefined) {
-    setUpdateNote(`${T('up.downloading')}  ${mb(p.got)} MB`);
+    setUpdateStatus(`${T('up.downloading')}  ${mb(p.got)} MB`);
   } else {
-    setUpdateNote(`${T('up.downloading')}  ${p.pct}%  (${mb(p.got)} / ${mb(p.total)} MB)`);
+    setUpdateStatus(`${T('up.downloading')}  ${p.pct}%  (${mb(p.got)} / ${mb(p.total)} MB)`);
   }
 }
 
@@ -3641,7 +3661,11 @@ function showUpdate(info) {
   document.getElementById('updateNow').textContent = T('up.now');
   document.getElementById('lnkManual').textContent = T('up.manual');
   document.getElementById('lnkInstaller').textContent = T('up.installer');
-  setUpdateNote(cleanReleaseNotes(info && info.notes));
+  const notes = cleanReleaseNotes(info && info.notes);
+  const label = document.getElementById('updateNoteLabel');
+  label.textContent = T('up.whatsnew');
+  label.classList.toggle('show', !!notes);
+  setUpdateNote(notes);
   wrap.classList.add('show');
 }
 
@@ -3652,12 +3676,12 @@ document.getElementById('updateLater').onclick = () => {
 document.getElementById('updateNow').onclick = async () => {
   const btn = document.getElementById('updateNow');
   btn.disabled = true;
-  setUpdateNote(T('up.downloading'));
+  setUpdateStatus(T('up.downloading'));
   const r = await callNative('download_update');
   btn.disabled = false;
-  if (!r) { setUpdateNote(T('up.nonative')); return; }
-  if (r.ok) setUpdateNote(T('up.done', { p: r.path }));
-  else setUpdateNote(T('up.fail', { e: r.error || '?' }));
+  if (!r) { setUpdateStatus(T('up.nonative')); return; }
+  if (r.ok) setUpdateStatus(T('up.done', { p: r.path }));
+  else setUpdateStatus(T('up.fail', { e: r.error || '?' }));
 };
 
 document.getElementById('lnkManual').onclick = async () => {
@@ -3667,10 +3691,10 @@ document.getElementById('lnkManual').onclick = async () => {
 };
 
 document.getElementById('lnkInstaller').onclick = async () => {
-  setUpdateNote(T('up.instDownloading'));
+  setUpdateStatus(T('up.instDownloading'));
   const r = await callNative('download_installer');
-  if (!r) { setUpdateNote(T('up.instNonative')); return; }
-  setUpdateNote(r.ok
+  if (!r) { setUpdateStatus(T('up.instNonative')); return; }
+  setUpdateStatus(r.ok
     ? T('up.instDone', { p: r.path })
     : T('up.instFail', { e: r.error || '?' }));
 };

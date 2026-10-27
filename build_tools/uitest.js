@@ -589,18 +589,35 @@ async function main() {
     `${upd.manual} | ${upd.installer}`);
   check('有取消和更新两个按钮', upd.btns.join('/') === '以后再说/立即更新', upd.btns.join('/'));
 
-  // ---- 23.1 更新弹窗里要显示更新内容（剥掉 Markdown 符号） ----
+  // ---- 23.1 更新弹窗里要显示「本次更新内容」 ----
   const notesShown = await page.evaluate(() => {
     window.__whiteboard.showUpdate({
       current: '1.0.0', latest: '9.9.9', date: '2026-10-25',
-      notes: '**笔**：三档笔\n**选**：框选 / 点选\n- `Ctrl+Z` 能撤销\n---\n**下载说明**：解压后看使用说明',
+      notes: '## 本次更新\n- 选项改成滑动开关\n- 画笔面板加吸管\n---\n**CleanBlackboard** 产品介绍不该出现在这',
     });
     const el = document.getElementById('updateNote');
-    return { text: el.textContent, lines: el.textContent.split('\n').length };
+    const label = document.getElementById('updateNoteLabel');
+    return {
+      text: el.textContent,
+      lines: el.textContent.split('\n').length,
+      label: label.textContent,
+      labelShown: label.classList.contains('show'),
+    };
   });
-  check('更新框显示更新内容', /三档笔/.test(notesShown.text), notesShown.text.slice(0, 60));
-  check('更新内容剥掉了 Markdown 符号', !/\*\*|`/.test(notesShown.text), notesShown.text.slice(0, 60));
+  check('更新框有小标题「本次更新内容：」', notesShown.label === '本次更新内容：', notesShown.label);
+  check('有更新内容时小标题显示', notesShown.labelShown);
+  check('只取「本次更新」那一段', /滑动开关/.test(notesShown.text) && !/产品介绍/.test(notesShown.text),
+    notesShown.text.slice(0, 50));
+  check('更新内容剥掉了 Markdown 符号', !/[-*#`]/.test(notesShown.text.replace(/[^\S\n]+/g, '')),
+    notesShown.text.slice(0, 60));
   check('更新内容不超过 3 条', notesShown.lines <= 3, String(notesShown.lines));
+
+  // 没有更新内容时，小标题不该单独留在那
+  const noNotes = await page.evaluate(() => {
+    window.__whiteboard.showUpdate({ current: '1.0.0', latest: '9.9.9', date: '2026-10-25' });
+    return document.getElementById('updateNoteLabel').classList.contains('show');
+  });
+  check('没写更新内容时不显示小标题', noNotes === false);
   check('更新内容不带「下载说明」尾巴',
     !/下载说明/.test(notesShown.text), notesShown.text.slice(-30));
   await page.click('#updateLater');

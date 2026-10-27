@@ -26,7 +26,7 @@ APP_SLUG = "CleanBlackboard"             # 英文简写：exe 文件名、标题
 APP_TITLE = f"{APP_SLUG} - {APP_NAME}"   # 标题栏：CleanBlackboard - 简黑板
 APP_ID = "CleanBlackboard"
 LEGACY_APP_ID = "WhiteboardDesktop"
-VERSION = "1.2.1"
+VERSION = "1.2.2"
 
 # ---------- 更新检查 ----------
 REPO = "Liuyichen27/clean-blackboard"          # 本项目
