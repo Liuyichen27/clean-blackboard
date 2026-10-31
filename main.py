@@ -28,10 +28,20 @@ APP_ID = "CleanBlackboard"
 LEGACY_APP_ID = "WhiteboardDesktop"
 VERSION = "1.2.2"
 
+# 平台判定：Windows 打包成 exe，Linux 走 deb（系统 python3 + WebKitGTK）
+IS_WIN = sys.platform.startswith("win")
+IS_MAC = sys.platform == "darwin"
+
 # ---------- 更新检查 ----------
 REPO = "Liuyichen27/clean-blackboard"          # 本项目
 INSTALLER_REPO = "Liuyichen27/SwiftGet"        # 自研下载器（当作备用安装器）
 EXE_ASSET = f"{APP_SLUG}.exe"
+DEB_TEMPLATE = "cleanblackboard_{ver}_all.deb"
+
+
+def asset_name(ver: str) -> str:
+    """当前平台该下哪个附件：Windows 是 exe，Linux 是 deb。"""
+    return EXE_ASSET if IS_WIN else DEB_TEMPLATE.format(ver=ver)
 INSTALLER_ASSET = "SwiftGet.exe"
 PROXY = "https://gh-proxy.com/"                # github 直连不稳时的镜像
 RELEASES_PAGE = f"https://github.com/{REPO}/releases/latest"
@@ -57,12 +67,46 @@ def resource_root() -> Path:
     return Path(__file__).resolve().parent
 
 
-def _set_clipboard_image(path: str) -> bool:
-    """把一张图片放进 Windows 剪贴板。
+def _set_clipboard_image_linux(path: str) -> bool:
+    """Linux 剪贴板：Wayland 用 wl-copy，X11 用 xclip；都没有就返回 False。"""
+    import shutil
+    import subprocess
 
-    走 .NET 的 Clipboard.SetImage：不用 Pillow，也不受浏览器剪贴板权限影响。
-    剪贴板只能在 STA 线程里操作，所以单开一个 STA 线程，做完等它回来。
+    try:
+        data = Path(path).read_bytes()
+    except OSError:
+        return False
+
+    wl = shutil.which("wl-copy")
+    if wl:
+        try:
+            subprocess.run([wl, "--type", "image/png"], input=data,
+                           check=True, timeout=10)
+            return True
+        except Exception:  # noqa: BLE001
+            pass
+
+    xclip = shutil.which("xclip")
+    if xclip:
+        try:
+            subprocess.run([xclip, "-selection", "clipboard", "-t", "image/png"],
+                           input=data, check=True, timeout=10)
+            return True
+        except Exception:  # noqa: BLE001
+            pass
+    return False
+
+
+def _set_clipboard_image(path: str) -> bool:
+    """把一张图片放进系统剪贴板。
+
+    Windows：走 .NET 的 Clipboard.SetImage，不用 Pillow，也不受浏览器
+    剪贴板权限影响。剪贴板只能在 STA 线程里操作，所以单开一个 STA 线程。
+    Linux：交给 xclip / wl-copy（没装就老实返回 False，页面会提示另存）。
     """
+    if not IS_WIN:
+        return _set_clipboard_image_linux(path)
+
     try:
         import clr  # pythonnet 是 pywebview 的依赖，打包时已经带上
 
@@ -95,8 +139,16 @@ def _set_clipboard_image(path: str) -> bool:
 
 
 def app_dir() -> Path:
-    """用户数据目录：%APPDATA%\\CleanBlackboard。"""
-    base = Path(os.environ.get("APPDATA") or str(Path.home()))
+    """用户数据目录。
+
+    Windows：``%APPDATA%\\CleanBlackboard``
+    Linux / macOS：``$XDG_DATA_HOME/CleanBlackboard``（默认 ``~/.local/share``）
+    """
+    if IS_WIN:
+        base = Path(os.environ.get("APPDATA") or str(Path.home()))
+    else:
+        base = Path(os.environ.get("XDG_DATA_HOME")
+                    or (Path.home() / ".local" / "share"))
     d = base / APP_ID
     old = base / LEGACY_APP_ID
     # 改名前叫 WhiteboardDesktop，老用户的草稿一并搬过来
@@ -277,7 +329,7 @@ def check_update() -> dict:
         "notes": info.get("notes") or "",
         "has_update": has,
         "page": info["page"],
-        "asset_url": info["assets"].get(EXE_ASSET) or "",
+        "asset_url": info["assets"].get(asset_name(info["version"])) or "",
     }
 
 
@@ -471,7 +523,7 @@ class Api:
         return report
 
     def download_update(self) -> dict:
-        """下载最新版 exe 到「下载」文件夹。返回路径，让用户自己运行。"""
+        """下载最新版安装包到「下载」文件夹。返回路径，让用户自己运行。"""
         try:
             info = check_update()
             if not info.get("ok"):
@@ -482,15 +534,18 @@ class Api:
 
             # 镜像排前面：国内直连 release 资源经常只有几十 KB/s
             tag = str(info.get("tag") or f"v{ver}")
-            direct = f"https://github.com/{REPO}/releases/download/{tag}/{EXE_ASSET}"
+            asset = asset_name(ver)
+            direct = f"https://github.com/{REPO}/releases/download/{tag}/{asset}"
             urls = [
                 f"{PROXY}{direct}",
                 direct,
                 info.get("asset_url") or "",
             ]
-            dest = downloads_dir() / f"{APP_SLUG}-{ver}.exe"
-            download_asset(urls, dest, on_progress=self._progress_cb())
-            return {"ok": True, "path": str(dest), "version": ver}
+            dest = downloads_dir() / asset
+            download_asset(urls, dest, exe=IS_WIN, on_progress=self._progress_cb())
+            return {"ok": True, "path": str(dest), "version": ver,
+                    "hint": "" if IS_WIN else
+                            f"sudo apt install '{dest}'"} 
         except Exception as e:  # noqa: BLE001
             return {"ok": False, "error": f"{type(e).__name__}: {e}"}
 
@@ -572,7 +627,14 @@ def desktop_available() -> bool:
 
 
 def make_dpi_aware() -> float:
-    """声明 DPI 感知，返回缩放比。不做的话 200% 屏上窗口会大出一倍。"""
+    """声明 DPI 感知，返回缩放比。不做的话 200% 屏上窗口会大出一倍。
+
+    只有 Windows 需要手动声明；Linux 的缩放由 GTK / 桌面环境自己管，
+    在这里调 windll 只会 AttributeError。
+    """
+    if not IS_WIN:
+        return 1.0
+
     import ctypes
 
     try:
@@ -590,6 +652,10 @@ def make_dpi_aware() -> float:
 
 def window_geometry() -> tuple[int, int, int, int]:
     """按当前屏幕算一个合适的初始窗口：不超过工作区的 86%，并居中。"""
+    if not IS_WIN:
+        # Linux / macOS：窗口位置交给窗口管理器，这里只给一个合适的尺寸
+        return 1280, 820, 0, 0
+
     import ctypes
 
     scale = make_dpi_aware()
@@ -620,6 +686,8 @@ def report_crash(exc: BaseException) -> None:
     try:
         import ctypes
 
+        if not IS_WIN:
+            raise OSError("非 Windows 平台")
         ctypes.windll.user32.MessageBoxW(
             None,
             f"启动失败：{exc}\n\n详细信息已写入：\n{log}",
@@ -665,6 +733,7 @@ def probe_update(window) -> None:
             "current": info["current"],
             "latest": info["latest"],
             "date": info.get("date") or "",
+            "notes": info.get("notes") or "",
         }, ensure_ascii=True)
         window.evaluate_js(
             "window.__whiteboard && window.__whiteboard.showUpdate(%s)" % payload
@@ -673,7 +742,70 @@ def probe_update(window) -> None:
         pass  # 更新检查失败绝不能影响正常使用
 
 
+def cli_probe() -> int | None:
+    """``--version`` / ``--check``：不开窗口，先把环境情况打出来。
+
+    Linux 版依赖系统 python3 + WebKitGTK，装完跑一下这个就知道缺什么；
+    Windows 版也留着，绿色的 exe 出问题时同样能自证。
+    """
+    args = sys.argv[1:]
+    if "--version" in args or "-V" in args:
+        print(f"{APP_SLUG} {VERSION}  ({sys.platform})")
+        return 0
+    if "--check" not in args:
+        return None
+
+    print(f"{APP_SLUG} {VERSION}")
+    print(f"  平台      {sys.platform}")
+    print(f"  数据目录  {app_dir()}")
+    print(f"  资源目录  {resource_root()}")
+    ok = True
+
+    def line(name: str, good: bool, detail: str = "") -> None:
+        nonlocal ok
+        ok = ok and good
+        # 别用 ✓ / ✗：Windows 控制台代码页是 GBK，打印会直接 UnicodeEncodeError
+        print(f"  [{'ok  ' if good else 'fail'}] {name}{('  ' + detail) if detail else ''}")
+
+    try:
+        import webview
+        ver = getattr(webview, "__version__", "?")
+        line("pywebview", True, str(ver))
+    except Exception as e:  # noqa: BLE001
+        line("pywebview", False, f"{type(e).__name__}: {e}")
+        print("     装法：sudo apt install python3-webview")
+
+    if not IS_WIN:
+        try:
+            import gi
+            gi.require_version("Gtk", "3.0")
+            line("GTK3", True)
+        except Exception as e:  # noqa: BLE001
+            line("GTK3", False, f"{type(e).__name__}: {e}")
+            print("     装法：sudo apt install python3-gi gir1.2-gtk-3.0")
+        try:
+            import gi
+            try:
+                gi.require_version("WebKit2", "4.1")
+                ver = "4.1"
+            except Exception:
+                gi.require_version("WebKit2", "4.0")
+                ver = "4.0"
+            line(f"WebKit2 {ver}", True)
+        except Exception as e:  # noqa: BLE001
+            line("WebKit2", False, f"{type(e).__name__}: {e}")
+            print("     装法：sudo apt install gir1.2-webkit2-4.1")
+
+    html = resource_root() / "ui" / "index.html"
+    line("界面文件", html.exists(), str(html))
+    print("\n" + ("全部就绪，直接跑 cleanblackboard 就行。" if ok else "有缺项，按上面的命令补齐再试。"))
+    return 0 if ok else 2
+
+
 def main() -> int:
+    probe = cli_probe()
+    if probe is not None:
+        return probe
     try:
         import webview
 
@@ -712,13 +844,14 @@ def main() -> int:
         start_kwargs = {
             "private_mode": False,          # 关掉隐私模式，localStorage 才会留下来
             "storage_path": str(app_dir() / "webview"),
-            "gui": "edgechromium",          # Win10/11 自带 WebView2
             "debug": os.environ.get("WHITEBOARD_DEBUG") == "1",
         }
+        if IS_WIN:
+            start_kwargs["gui"] = "edgechromium"   # Win10/11 自带 WebView2
         try:
             webview.start(**start_kwargs)
         except Exception:
-            # 没有 WebView2 时退回系统默认内核，至少还能打开
+            # 没有 WebView2（或 Linux 上缺 GTK 后端）时退回默认内核，至少还能打开
             webview.start(private_mode=False, storage_path=str(app_dir() / "webview"))
 
         return 0

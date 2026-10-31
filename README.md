@@ -23,6 +23,7 @@
 | 写字 | 直接按住鼠标拖；按 <kbd>P</kbd> 切回画笔 |
 | 换颜色、粗细、笔型 | **再点一次画笔图标**，弹出小窗（笔 / 荧光笔 / 书法笔） |
 | 框选一批东西 | 按 <kbd>V</kbd>，在空白处拖出选框 |
+| 只选一条线 / 一段字 | **再点一次选中图标**，滑到「点选」，之后点哪选哪 |
 | 改选中的东西 | 选中后浮出工具条：置顶 / 克隆 / 锁定 / 字号 / 颜色 / 删除 |
 | 移动位置 | 拖它本身；右上角小方块可以缩放 |
 | 加图片 | 直接把图片**拖进窗口**，或 <kbd>Ctrl</kbd>+<kbd>V</kbd> 粘贴 |
@@ -123,6 +124,37 @@ node   build_tools/uitest.js                # 画笔/框选/工具条/小黑板/
 ```
 
 `uitest.js` 用真实 Edge 内核跑 31 项断言，exe 里装的就是同一份 `index.html`，所以过了这套就等于过了桌面版。
+
+## Linux（Debian / Ubuntu）
+
+装 deb：
+
+```bash
+sudo apt install ./cleanblackboard_1.2.2_all.deb
+cleanblackboard            # 或从应用菜单点「简黑板」
+cleanblackboard --check    # 装完先跑这个：缺哪个依赖它会直接告诉你怎么补
+```
+
+**为什么 Linux 版是源码包而不是单文件**：PyInstaller 不能交叉编译，Windows 上跑不出一份 Linux 可执行文件。所以这个 deb 是 `Architecture: all`——里面放 Python 源码和界面资源，运行时用系统的 `python3` + `python3-webview`（WebKitGTK 后端）。好处是不挑发行版、不挑 CPU 架构；代价是依赖得由 apt 装，`control` 里已经写全了：
+
+| 依赖 | 作用 |
+| --- | --- |
+| `python3-webview` | `import webview`，窗口外壳 |
+| `gir1.2-webkit2-4.1`（或 `-4.0`） | 真正渲染界面的 WebKitGTK |
+| `python3-gi` | GTK3 绑定 |
+| `fonts-noto-cjk`（Recommends） | 中文字体，不装会整屏方块 |
+| `xclip` 或 `wl-copy`（Recommends） | 分享长图时自动进剪贴板，没有就退化成「另存为 PNG」 |
+
+自己构建 deb：
+
+```bash
+python build_tools/build_deb.py
+# 产物：dist/cleanblackboard_1.2.2_all.deb（约 129 KB）
+```
+
+构建脚本最后会**把打好的 deb 读回来自检**：ar 成员顺序、control 必需字段、`Architecture: all`、启动器和 postinst 的执行位、属主是不是 root、md5sums 和实际内容对不对得上。shell 脚本先用 `sh -n` 过一遍语法——少写个 `fi` 装到别人机器上就是「装完点不开」。
+
+Linux 上的数据目录是 `~/.local/share/CleanBlackboard`（尊重 `XDG_DATA_HOME`）。
 
 ## 工程结构
 

@@ -44,8 +44,16 @@ def find_window(keyword: str, timeout: float = 60.0) -> int:
             return True
         buf = ctypes.create_unicode_buffer(n + 1)
         user32.GetWindowTextW(hwnd, buf, n + 1)
-        if keyword in buf.value:
-            found.append(hwnd)
+        if keyword not in buf.value:
+            return True
+        # 只要够大的窗口：pywebview 初始化时会有个几十像素的过渡窗口，
+        # 标题也叫 CleanBlackboard，抓到它就只能截到一个小黑方块
+        # （1 种颜色 / 4108 像素，看着像「界面没渲染」其实抓错了窗口）。
+        rect = wintypes.RECT()
+        user32.GetWindowRect(hwnd, ctypes.byref(rect))
+        if (rect.right - rect.left) < 600 or (rect.bottom - rect.top) < 400:
+            return True
+        found.append(hwnd)
         return True
 
     deadline = time.time() + timeout
@@ -134,6 +142,11 @@ def main() -> int:
     log = crash_log()
     before = log.stat().st_mtime if log.exists() else 0
 
+    # 先把上次没退干净的进程清掉：find_window 是按窗口标题找的，残留进程的
+    # 窗口会被当成这一次的，于是抓到几秒钟前的旧画面（1 种颜色、4000 多像素）。
+    subprocess.run(["taskkill", "/IM", exe.name, "/F"], capture_output=True)
+    time.sleep(0.6)
+
     print(f"启动 {exe.name} ...")
     proc = subprocess.Popen([str(exe)], cwd=str(exe.parent))
     try:
@@ -157,8 +170,18 @@ def main() -> int:
             return 1
         print("✓ 窗口响应正常（连续 8 次采样均未假死）")
 
-        colors, pixels, dark = color_stats(hwnd)
-        print(f"✓ 截图分析：{colors} 种颜色 / {pixels} 像素 / 深色 {dark:.1f}%")
+        # 截图重试：窗口刚显示时 WebView2 还在画第一帧，这时 BitBlt 抓到的
+        # 往往只有一个小黑块（1 种颜色、四五千像素）。多等几轮再判定，
+        # 否则每次发版都要人工重跑一遍。
+        colors = pixels = 0
+        dark = 0.0
+        for attempt in range(6):
+            colors, pixels, dark = color_stats(hwnd)
+            if colors >= 40 and pixels > 100_000:
+                break
+            time.sleep(1.2)
+        print(f"✓ 截图分析：{colors} 种颜色 / {pixels} 像素 / 深色 {dark:.1f}%"
+              f"{'' if attempt == 0 else f'（第 {attempt + 1} 次采样）'}")
         if colors < 40:
             print("✗ 画面颜色太单一，界面可能没渲染出来")
             return 1
@@ -175,6 +198,10 @@ def main() -> int:
         return 0
     finally:
         proc.terminate()
+        try:
+            proc.wait(timeout=5)
+        except Exception:  # noqa: BLE001
+            proc.kill()
 
 
 if __name__ == "__main__":

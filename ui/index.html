@@ -25,8 +25,8 @@
   html, body {
     margin: 0; padding: 0; height: 100%; overflow: hidden;
     background: var(--paper); color: var(--ink);
-    font: 13px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
-          "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    font: 13px/1.5 -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Hiragino Sans GB",
+          "Microsoft YaHei", "Noto Sans CJK SC", "Source Han Sans SC", sans-serif;
     user-select: none; overscroll-behavior: none;
   }
 
@@ -1686,7 +1686,7 @@ function renderObject(c, o) {
 
     case 'text': {
       c.globalAlpha = o.opacity ?? 1;
-      c.font = `${o.size}px -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif`;
+      c.font = `${o.size}px -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif`;
       c.textBaseline = 'top';
       c.fillStyle = o.color;
       o.text.split('\n').forEach((line, i) => c.fillText(line, o.x, o.y + i * o.size * 1.35));
@@ -2611,7 +2611,7 @@ function longShot() {
   blocks.forEach((b, i) => {
     if (multi) {
       g.fillStyle = th.muted;
-      g.font = '600 20px "Microsoft YaHei", "Segoe UI", sans-serif';
+      g.font = '600 20px "Microsoft YaHei", "Segoe UI", "Noto Sans CJK SC", sans-serif';
       g.textAlign = 'left';
       g.fillText(`${i + 1} / ${blocks.length}`, pad, y + 24);
       y += labelH;
@@ -2635,7 +2635,7 @@ function longShot() {
   });
 
   g.fillStyle = th.muted;
-  g.font = '500 18px "Segoe UI", "Microsoft YaHei", sans-serif';
+  g.font = '500 18px "Segoe UI", "Microsoft YaHei", "Noto Sans CJK SC", sans-serif';
   g.textAlign = 'right';
   g.fillText('CleanBlackboard · 简黑板', w - pad, h - 34);
 
