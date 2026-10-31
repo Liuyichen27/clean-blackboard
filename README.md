@@ -130,7 +130,7 @@ node   build_tools/uitest.js                # 画笔/框选/工具条/小黑板/
 装 deb：
 
 ```bash
-sudo apt install ./cleanblackboard_1.2.2_all.deb
+sudo apt install ./cleanblackboard_1.2.3_all.deb
 cleanblackboard            # 或从应用菜单点「简黑板」
 cleanblackboard --check    # 装完先跑这个：缺哪个依赖它会直接告诉你怎么补
 ```
@@ -149,7 +149,7 @@ cleanblackboard --check    # 装完先跑这个：缺哪个依赖它会直接告
 
 ```bash
 python build_tools/build_deb.py
-# 产物：dist/cleanblackboard_1.2.2_all.deb（约 129 KB）
+# 产物：dist/cleanblackboard_1.2.3_all.deb（约 129 KB）
 ```
 
 构建脚本最后会**把打好的 deb 读回来自检**：ar 成员顺序、control 必需字段、`Architecture: all`、启动器和 postinst 的执行位、属主是不是 root、md5sums 和实际内容对不对得上。shell 脚本先用 `sh -n` 过一遍语法——少写个 `fi` 装到别人机器上就是「装完点不开」。

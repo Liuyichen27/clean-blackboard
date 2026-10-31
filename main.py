@@ -26,7 +26,7 @@ APP_SLUG = "CleanBlackboard"             # 英文简写：exe 文件名、标题
 APP_TITLE = f"{APP_SLUG} - {APP_NAME}"   # 标题栏：CleanBlackboard - 简黑板
 APP_ID = "CleanBlackboard"
 LEGACY_APP_ID = "WhiteboardDesktop"
-VERSION = "1.2.2"
+VERSION = "1.2.3"
 
 # 平台判定：Windows 打包成 exe，Linux 走 deb（系统 python3 + WebKitGTK）
 IS_WIN = sys.platform.startswith("win")

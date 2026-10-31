@@ -173,6 +173,13 @@ def _tar_bytes(entries: list[tuple[str, Path | None, bytes | None, int]]) -> byt
             info.uname = "root"
             info.gname = "root"
             info.mode = mode
+            if name.endswith("/"):
+                # 目录必须是 DIRTYPE(b'5')。写成普通文件的话 dpkg 解包时会
+                # 先创建一个叫 usr 的空文件，接着 usr/bin 全部失败
+                info.type = tarfile.DIRTYPE
+                info.size = 0
+                tf.addfile(info)
+                continue
             if data is None and src is not None:
                 data = src.read_bytes()
             payload = data or b""
@@ -366,6 +373,13 @@ def _untar(blob: bytes) -> list[tuple[str, int, bytes]]:
     return out
 
 
+def _dir_types(blob: bytes) -> list[tuple[str, bytes]]:
+    """列出目录条目及其 type，确认它们真是 DIRTYPE 而不是同名普通文件。"""
+    raw = gzip.decompress(blob)
+    with tarfile.open(fileobj=io.BytesIO(raw), mode="r:") as tf:
+        return [(m.name, m.type) for m in tf.getmembers() if m.isdir()]
+
+
 def verify(deb: Path, ver: str) -> int:
     print("\n自检：")
     blob = deb.read_bytes()
@@ -407,6 +421,11 @@ def verify(deb: Path, ver: str) -> int:
     chk(paths[f"./usr/bin/cleanblackboard"][0] & 0o111 != 0, "启动器可执行")
     chk(paths[f".{APP_DIR}/main.py"][0] == 0o644, "main.py 权限 0644")
     chk(all(uid == 0 and gid == 0 for _, _, _, uid, gid in data), "所有条目属主是 root")
+
+    dirs = _dir_types(dict(members)["data.tar.gz"])
+    bad_dirs = [n for n, t in dirs if t != tarfile.DIRTYPE]
+    chk(dirs and not bad_dirs, "目录条目类型是 DIRTYPE(5)",
+        f"{len(dirs)} 个目录" if not bad_dirs else f"伪装成文件的目录：{bad_dirs[:3]}")
     chk(paths.get(f".{APP_DIR}/ui/index.html", (0, b""))[1].startswith(b"<!DOCTYPE") or
         b"<html" in paths.get(f".{APP_DIR}/ui/index.html", (0, b""))[1][:400].lower(),
         "界面文件内容完整")
